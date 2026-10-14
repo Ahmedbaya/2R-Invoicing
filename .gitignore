@@ -3,4 +3,4 @@ dist
 dist-electron
 release
 .env
-config.jsonconfig.json
+config.json
