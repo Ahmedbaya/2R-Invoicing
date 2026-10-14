@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-mist text-ink font-sans antialiased; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-thread; }
+}
+@layer components {
+  .label { @apply mb-1 block text-sm font-medium; }
+  .input { @apply w-full rounded border border-rule bg-white px-2.5 py-1.5 text-sm disabled:bg-mist disabled:text-ink/60; }
+  .num { @apply text-right tabular-nums; }
+  .btn { @apply inline-flex items-center justify-center rounded px-3.5 py-1.5 text-sm font-medium disabled:opacity-50; }
+  .btn-primary { @apply btn bg-thread text-white hover:bg-thread-dark; }
+  .btn-quiet { @apply btn border border-rule bg-white hover:bg-mist; }
+}

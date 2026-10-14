@@ -1,0 +1,86 @@
+export interface Client {
+  id: number
+  company_name: string
+  address_1: string | null
+  address_2: string | null
+  country: string | null
+  tax_id: string | null
+}
+export type ClientInput = Omit<Client, 'id'> & { id?: number }
+
+export interface Product {
+  id: number
+  sku: string | null
+  description: string
+  default_price: string
+}
+export type ProductInput = Omit<Product, 'id'> & { id?: number }
+
+export interface ItemInput {
+  product_id: number | null
+  description: string
+  quantity: string
+  unit_price: string
+}
+export interface LogisticsInput {
+  customs_declaration: string
+  transporter: string
+  gross_weight_kg: string
+  net_weight_kg: string
+  pallets: number | null
+}
+export interface DraftInput {
+  id?: number
+  version?: number
+  client_id: number | null
+  issue_date: string // yyyy-mm-dd
+  currency: string
+  vat_note: string
+  items: ItemInput[]
+  logistics: LogisticsInput
+  created_by: string
+}
+export interface InvoiceRecord {
+  id: number
+  status: 'draft' | 'finalized'
+  number: number | null
+  year: number | null
+  version: number
+  client_id: number | null
+  client: Client | null // snapshot when finalized, live row when draft
+  issue_date: string
+  currency: string
+  vat_note: string
+  created_by: string
+  items: (ItemInput & { id: number; line_total: string })[]
+  logistics: LogisticsInput
+  total_amount: string
+  total_quantity: string
+}
+export interface InvoiceListRow {
+  id: number
+  status: 'draft' | 'finalized'
+  number: number | null
+  year: number | null
+  client_name: string | null
+  issue_date: string
+  total_amount: string
+  currency: string
+}
+
+export type Result<T> = { ok: true; data: T } | { ok: false; error: string }
+
+export interface Api {
+  db: { ping(): Promise<true> }
+  clients: { list(): Promise<Client[]>; save(c: ClientInput): Promise<Client>; remove(id: number): Promise<true> }
+  products: { list(): Promise<Product[]>; save(p: ProductInput): Promise<Product>; remove(id: number): Promise<true> }
+  invoices: {
+    list(): Promise<InvoiceListRow[]>
+    get(id: number): Promise<InvoiceRecord>
+    saveDraft(d: DraftInput): Promise<InvoiceRecord>
+    finalize(a: { id: number; version: number }): Promise<InvoiceRecord>
+    unlock(a: { id: number; version: number }): Promise<InvoiceRecord>
+    remove(id: number): Promise<true>
+    exportPdf(id: number): Promise<string | null> // saved path, or null if cancelled
+  }
+}
