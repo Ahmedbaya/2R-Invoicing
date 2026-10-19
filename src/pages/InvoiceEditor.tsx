@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { amountInWordsFr } from '../../shared/amountInWords'
 import { computeTotals, formatNumber } from '../../shared/calc'
-import type { Client, InvoiceRecord, Product } from '../../shared/types'
+import type { Category, Client, InvoiceRecord, Product } from '../../shared/types'
 import { getUserName } from '../lib/user'
 
 interface Row { key: string; product_id: number | null; item_code: string; order_name: string; customs_code: string; description: string; quantity: string; unit_price: string }
@@ -13,6 +13,7 @@ export default function InvoiceEditor() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [clients, setClients] = useState<Client[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [meta, setMeta] = useState<{ id?: number; version?: number; status: 'draft' | 'finalized'; number: number | null; year: number | null }>({ status: 'draft', number: null, year: null })
   const [clientId, setClientId] = useState('')
@@ -40,7 +41,9 @@ export default function InvoiceEditor() {
   }
 
   useEffect(() => {
-    Promise.all([window.api.clients.list(), window.api.products.list()]).then(([c, p]) => { setClients(c); setProducts(p) }).catch((e: Error) => setError(e.message))
+    Promise.all([window.api.clients.list(), window.api.products.list(), window.api.categories.list()])
+      .then(([c, p, cat]) => { setClients(c); setProducts(p); setCategories(cat) })
+      .catch((e: Error) => setError(e.message))
     if (id) window.api.invoices.get(Number(id)).then(hydrate).catch((e: Error) => setError(e.message))
   }, [id])
 
@@ -146,7 +149,7 @@ export default function InvoiceEditor() {
           <datalist id="codes">{products.filter((p) => p.code).map((p) => <option key={p.id} value={p.code!}>{p.name}</option>)}</datalist>
           <datalist id="names">{products.map((p) => <option key={p.id} value={p.name}>{p.code}</option>)}</datalist>
           <table className="w-full text-sm">
-            <thead><tr className="text-left"><th className="w-24 pb-1 num">Q.TE</th><th className="w-28 pb-1 pl-2">CODE</th><th className="w-40 pb-1 pl-2">COMMANDE</th><th className="pb-1 pl-2">ARTICOLO</th><th className="w-32 pb-1 pl-2">CODE DOUANE</th><th className="w-24 pb-1 num">PRIX</th><th className="w-28 pb-1 num">TOTAL</th><th className="w-10" /></tr></thead>
+            <thead><tr className="text-left"><th className="w-24 pb-1 num">Q.TE</th><th className="w-28 pb-1 pl-2">CODE</th><th className="w-40 pb-1 pl-2">COMMANDE</th><th className="pb-1 pl-2">ARTICOLO</th><th className="w-52 pb-1 pl-2">CODE DOUANE</th><th className="w-24 pb-1 num">PRIX</th><th className="w-28 pb-1 num">TOTAL</th><th className="w-10" /></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={r.key}>
@@ -154,7 +157,16 @@ export default function InvoiceEditor() {
                   <td className="p-1"><input aria-label="Product code" list="codes" className="input" value={r.item_code} onChange={(e) => onPick(r.key, 'item_code', e.target.value)} /></td>
                   <td className="p-1"><input aria-label="Order name" className="input" value={r.order_name} onChange={(e) => patchRow(r.key, { order_name: e.target.value })} /></td>
                   <td className="p-1"><input aria-label="Description" list="names" className="input" value={r.description} onChange={(e) => onPick(r.key, 'description', e.target.value)} /></td>
-                  <td className="p-1"><input aria-label="Customs code" className="input" value={r.customs_code} onChange={(e) => patchRow(r.key, { customs_code: e.target.value })} /></td>                  <td className="py-1"><input aria-label="Unit price" inputMode="decimal" className="input num" value={r.unit_price} onChange={(e) => patchRow(r.key, { unit_price: e.target.value })} /></td>
+                  <td className="p-1">
+                    <select aria-label="Customs code" className="input" value={r.customs_code} onChange={(e) => patchRow(r.key, { customs_code: e.target.value })}>
+                      <option value="">Choose</option>
+                      {r.customs_code && !categories.some((c) => c.customs_code === r.customs_code) && (
+                        <option value={r.customs_code}>{r.customs_code}</option>
+                      )}
+                      {categories.map((c) => <option key={c.id} value={c.customs_code}>{c.customs_code} · {c.name}</option>)}
+                    </select>
+                  </td>
+                  <td className="py-1"><input aria-label="Unit price" inputMode="decimal" className="input num" value={r.unit_price} onChange={(e) => patchRow(r.key, { unit_price: e.target.value })} /></td>
                   <td className="num py-1 pl-2">{formatNumber(totals.lines[i], 2)}</td>
                   <td className="py-1 text-center">
                     {rows.length > 1 && <button type="button" aria-label="Remove line" className="px-2 text-alert" onClick={() => setRows(rows.filter((x) => x.key !== r.key))}>✕</button>}
