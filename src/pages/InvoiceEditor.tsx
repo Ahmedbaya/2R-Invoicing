@@ -5,8 +5,8 @@ import { computeTotals, formatNumber } from '../../shared/calc'
 import type { Client, InvoiceRecord, Product } from '../../shared/types'
 import { getUserName } from '../lib/user'
 
-interface Row { key: string; product_id: number | null; description: string; quantity: string; unit_price: string }
-const newRow = (): Row => ({ key: crypto.randomUUID(), product_id: null, description: '', quantity: '', unit_price: '' })
+interface Row { key: string; product_id: number | null; item_code: string; order_name: string; customs_code: string; description: string; quantity: string; unit_price: string }
+const newRow = (): Row => ({ key: crypto.randomUUID(), product_id: null, item_code: '', order_name: '', customs_code: '', description: '', quantity: '', unit_price: '' })
 const today = () => new Date().toISOString().slice(0, 10)
 
 export default function InvoiceEditor() {
@@ -35,7 +35,7 @@ export default function InvoiceEditor() {
     setIssueDate(r.issue_date)
     setCurrency(r.currency)
     setVatNote(r.vat_note)
-    setRows(r.items.length ? r.items.map((i) => ({ key: crypto.randomUUID(), product_id: i.product_id, description: i.description, quantity: i.quantity, unit_price: i.unit_price })) : [newRow()])
+    setRows(r.items.length ? r.items.map((i) => ({ key: crypto.randomUUID(), product_id: i.product_id, item_code: i.item_code, order_name: i.order_name, customs_code: i.customs_code, description: i.description, quantity: i.quantity, unit_price: i.unit_price })) : [newRow()])
     setLg({ ...r.logistics, pallets: r.logistics.pallets === null ? '' : String(r.logistics.pallets) })
   }
 
@@ -46,10 +46,20 @@ export default function InvoiceEditor() {
 
   const patchRow = (key: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)))
 
-  const onDescription = (key: string, description: string) => {
-    const match = products.find((p) => p.description === description)
+  const onPick = (key: string, field: 'item_code' | 'description', value: string) => {
+    const match = products.find((p) => (field === 'item_code' ? p.code === value : p.name === value))
     const current = rows.find((r) => r.key === key)
-    patchRow(key, match ? { description, product_id: match.id, unit_price: current?.unit_price || match.default_price } : { description, product_id: null })
+    if (match) {
+      patchRow(key, {
+        product_id: match.id,
+        item_code: match.code ?? '',
+        description: match.name,
+        customs_code: match.customs_code ?? '',
+        unit_price: current?.unit_price || match.default_price,
+      })
+    } else {
+      patchRow(key, { [field]: value, product_id: null })
+    }
   }
 
   const persist = async (): Promise<InvoiceRecord> => {
@@ -133,15 +143,18 @@ export default function InvoiceEditor() {
         </section>
 
         <section className="rounded border border-rule bg-white p-4">
-          <datalist id="catalog">{products.map((p) => <option key={p.id} value={p.description} />)}</datalist>
+          <datalist id="codes">{products.filter((p) => p.code).map((p) => <option key={p.id} value={p.code!}>{p.name}</option>)}</datalist>
+          <datalist id="names">{products.map((p) => <option key={p.id} value={p.name}>{p.code}</option>)}</datalist>
           <table className="w-full text-sm">
-            <thead><tr className="text-left"><th className="w-28 pb-1 num">Q.TE</th><th className="pb-1 pl-2">ARTICOLO</th><th className="w-28 pb-1 num">PRIX</th><th className="w-32 pb-1 num">TOTAL</th><th className="w-10" /></tr></thead>
+            <thead><tr className="text-left"><th className="w-24 pb-1 num">Q.TE</th><th className="w-28 pb-1 pl-2">CODE</th><th className="w-40 pb-1 pl-2">COMMANDE</th><th className="pb-1 pl-2">ARTICOLO</th><th className="w-32 pb-1 pl-2">CODE DOUANE</th><th className="w-24 pb-1 num">PRIX</th><th className="w-28 pb-1 num">TOTAL</th><th className="w-10" /></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={r.key}>
                   <td className="py-1"><input aria-label="Quantity" inputMode="decimal" className="input num" value={r.quantity} onChange={(e) => patchRow(r.key, { quantity: e.target.value })} /></td>
-                  <td className="p-1"><input aria-label="Description" list="catalog" className="input" value={r.description} onChange={(e) => onDescription(r.key, e.target.value)} /></td>
-                  <td className="py-1"><input aria-label="Unit price" inputMode="decimal" className="input num" value={r.unit_price} onChange={(e) => patchRow(r.key, { unit_price: e.target.value })} /></td>
+                  <td className="p-1"><input aria-label="Product code" list="codes" className="input" value={r.item_code} onChange={(e) => onPick(r.key, 'item_code', e.target.value)} /></td>
+                  <td className="p-1"><input aria-label="Order name" className="input" value={r.order_name} onChange={(e) => patchRow(r.key, { order_name: e.target.value })} /></td>
+                  <td className="p-1"><input aria-label="Description" list="names" className="input" value={r.description} onChange={(e) => onPick(r.key, 'description', e.target.value)} /></td>
+                  <td className="p-1"><input aria-label="Customs code" className="input" value={r.customs_code} onChange={(e) => patchRow(r.key, { customs_code: e.target.value })} /></td>                  <td className="py-1"><input aria-label="Unit price" inputMode="decimal" className="input num" value={r.unit_price} onChange={(e) => patchRow(r.key, { unit_price: e.target.value })} /></td>
                   <td className="num py-1 pl-2">{formatNumber(totals.lines[i], 2)}</td>
                   <td className="py-1 text-center">
                     {rows.length > 1 && <button type="button" aria-label="Remove line" className="px-2 text-alert" onClick={() => setRows(rows.filter((x) => x.key !== r.key))}>✕</button>}
@@ -150,7 +163,7 @@ export default function InvoiceEditor() {
               ))}
             </tbody>
           </table>
-          <button type="button" className="btn-quiet mt-3" onClick={() => setRows([...rows, newRow()])}>Add line</button>
+          <button type="button" className="btn-quiet mt-3" onClick={() => setRows([...rows, { ...newRow(), order_name: rows[rows.length - 1]?.order_name ?? '' }])}>Add line</button>
           <div className="mt-4 space-y-1 border-t border-rule pt-3 text-sm">
             <div className="flex justify-between"><span>Total quantity</span><b className="tabular-nums">{formatNumber(totals.totalQuantity)}</b></div>
             <div className="flex justify-between text-base"><span>Total {currency}</span><b className="tabular-nums">{formatNumber(totals.totalAmount, 2)}</b></div>

@@ -5,6 +5,7 @@ import ClientsPage from './pages/ClientsPage'
 import InvoiceEditor from './pages/InvoiceEditor'
 import InvoiceList from './pages/InvoiceList'
 import ProductsPage from './pages/ProductsPage'
+import CategoriesPage from './pages/CategoriesPage'
 
 const link = ({ isActive }: { isActive: boolean }) =>
   `block border-l-4 px-4 py-2 text-sm ${isActive ? 'border-white bg-white/10 font-medium' : 'border-transparent hover:bg-white/5'}`
@@ -25,6 +26,7 @@ export default function App() {
         <nav className="flex-1">
           <NavLink to="/invoices" className={link}>Invoices</NavLink>
           <NavLink to="/clients" className={link}>Clients</NavLink>
+          <NavLink to="/categories" className={link}>Categories</NavLink>
           <NavLink to="/products" className={link}>Products</NavLink>
         </nav>
         <div className="p-4">
@@ -47,6 +49,7 @@ export default function App() {
             <Route path="/invoices/new" element={<InvoiceEditor />} />
             <Route path="/invoices/:id" element={<InvoiceEditor />} />
             <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/products" element={<ProductsPage />} />
           </Routes>
         </div>

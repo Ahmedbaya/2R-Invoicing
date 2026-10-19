@@ -19,7 +19,13 @@ function databaseUrl(): string {
 
 export function getPool(): Pool {
   if (!pool) {
-    pool = new Pool({ connectionString: databaseUrl(), max: 5, connectionTimeoutMillis: 5000 })
+    pool = new Pool({
+      connectionString: databaseUrl(),
+      max: 3, // fewer parallel handshakes on a slow link
+      connectionTimeoutMillis: 30000, // was 5000
+      idleTimeoutMillis: 60000,
+      keepAlive: true,
+    })
     pool.on('error', (e) => console.error('Idle PG client error', e))
   }
   return pool

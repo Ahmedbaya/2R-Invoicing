@@ -26,7 +26,7 @@ export async function getInvoice(id: number): Promise<InvoiceRecord> {
     client = (await db.query('SELECT id, company_name, address_1, address_2, country, tax_id FROM clients WHERE id=$1', [r.client_id])).rows[0] ?? null
   }
   const items = (
-    await db.query('SELECT id, product_id, description, quantity, unit_price, line_total FROM invoice_items WHERE invoice_id=$1 ORDER BY position', [id])
+    await db.query('SELECT id, product_id, item_code, order_name, customs_code, description, quantity, unit_price, line_total FROM invoice_items WHERE invoice_id=$1 ORDER BY position', [id])
   ).rows.map((i) => ({ ...i, quantity: norm(i.quantity), unit_price: norm(i.unit_price) }))
   const lg = (await db.query('SELECT * FROM invoice_logistics WHERE invoice_id=$1', [id])).rows[0]
   return {
@@ -84,9 +84,9 @@ export async function saveDraft(d: Draft): Promise<InvoiceRecord> {
     }
     for (const [pos, it] of d.items.entries()) {
       await c.query(
-        `INSERT INTO invoice_items (invoice_id, position, product_id, description, quantity, unit_price, line_total)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [invoiceId, pos, it.product_id, it.description, dec(it.quantity).toFixed(), dec(it.unit_price).toFixed(), totals.lines[pos]],
+        `INSERT INTO invoice_items (invoice_id, position, product_id, item_code, order_name, customs_code, description, quantity, unit_price, line_total)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [invoiceId, pos, it.product_id, it.item_code, it.order_name, it.customs_code, it.description, dec(it.quantity).toFixed(), dec(it.unit_price).toFixed(), totals.lines[pos]],
       )
     }
     const lg = d.logistics

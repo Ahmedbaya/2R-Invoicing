@@ -1,0 +1,1 @@
+ALTER TABLE invoice_items ADD COLUMN order_name TEXT NOT NULL DEFAULT '';

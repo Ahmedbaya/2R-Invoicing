@@ -14,9 +14,17 @@ export const clientSchema = z.object({
 
 export const productSchema = z.object({
   id: z.number().int().positive().optional(),
-  sku: opt(100),
-  description: t(300).min(1, 'Description is required'),
+  code: t(50).trim().min(1, 'Product code is required'),
+  name: t(200).trim().min(1, 'Product name is required'),
+  description: t(1000),
+  category_id: z.number().int().positive({ message: 'Choose a category' }),
   default_price: t(32),
+})
+
+export const categorySchema = z.object({
+  id: z.number().int().positive().optional(),
+  name: t(100).trim().min(1, 'Category name is required'),
+  customs_code: t(20).trim().min(1, 'Customs code is required'),
 })
 
 export const draftSchema = z.object({
@@ -34,6 +42,9 @@ export const draftSchema = z.object({
         description: t(300).min(1, 'Every line needs a description'),
         quantity: t(32),
         unit_price: t(32),
+        item_code: t(50),
+        order_name: t(200),
+        customs_code: t(20),
       }),
     )
     .max(500),

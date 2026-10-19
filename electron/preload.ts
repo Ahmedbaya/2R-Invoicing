@@ -15,6 +15,11 @@ const api: Api = {
     save: (c) => call('clients:save', c),
     remove: (id) => call('clients:delete', id),
   },
+    categories: {
+    list: () => call('categories:list'),
+    save: (c) => call('categories:save', c),
+    remove: (id) => call('categories:delete', id),
+  },
   products: {
     list: () => call('products:list'),
     save: (p) => call('products:save', p),

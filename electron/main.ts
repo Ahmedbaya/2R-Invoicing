@@ -1,3 +1,10 @@
+import dns from 'node:dns'
+import net from 'node:net'
+
+// Prefer IPv4 and give each address more time. Node's default of 250 ms per address
+// is too short on slow or IPv6-translated networks.
+dns.setDefaultResultOrder('ipv4first')
+net.setDefaultAutoSelectFamilyAttemptTimeout(3000)
 import 'dotenv/config'
 import path from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'

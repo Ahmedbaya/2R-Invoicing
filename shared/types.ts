@@ -8,16 +8,37 @@ export interface Client {
 }
 export type ClientInput = Omit<Client, 'id'> & { id?: number }
 
+export interface Category {
+  id: number
+  name: string
+  customs_code: string
+}
+export type CategoryInput = Omit<Category, 'id'> & { id?: number }
+
 export interface Product {
   id: number
-  sku: string | null
-  description: string
+  code: string | null
+  name: string
+  description: string | null
+  category_id: number | null
+  category_name: string | null
+  customs_code: string | null
   default_price: string
 }
-export type ProductInput = Omit<Product, 'id'> & { id?: number }
+export interface ProductInput {
+  id?: number
+  code: string
+  name: string
+  description: string
+  category_id: number
+  default_price: string
+}
 
 export interface ItemInput {
   product_id: number | null
+  item_code: string
+  order_name: string
+  customs_code: string
   description: string
   quantity: string
   unit_price: string
@@ -73,6 +94,7 @@ export type Result<T> = { ok: true; data: T } | { ok: false; error: string }
 export interface Api {
   db: { ping(): Promise<true> }
   clients: { list(): Promise<Client[]>; save(c: ClientInput): Promise<Client>; remove(id: number): Promise<true> }
+  categories: { list(): Promise<Category[]>; save(c: CategoryInput): Promise<Category>; remove(id: number): Promise<true> }
   products: { list(): Promise<Product[]>; save(p: ProductInput): Promise<Product>; remove(id: number): Promise<true> }
   invoices: {
     list(): Promise<InvoiceListRow[]>
