@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Category, Product, ProductInput } from '../../shared/types'
+import { confirmAction } from '../lib/confirm'
 
 const blank: ProductInput = { code: '', name: '', description: '', category_id: 0, default_price: '' }
 
@@ -29,13 +30,13 @@ export default function ProductsPage() {
   const edit = (p: Product) =>
     setForm({ id: p.id, code: p.code ?? '', name: p.name, description: p.description ?? '', category_id: p.category_id ?? 0, default_price: p.default_price })
 
-  const remove = async (p: Product) => {
-    if (!(await window.api.confirm(`Delete "${p.name}"? Existing invoices are not affected.`))) return
+    const remove = async (p: Product) => {
     setError(null)
     try {
+      if (!(await confirmAction(`Delete "${p.name}"? Existing invoices are not affected.`))) return
       await window.api.products.remove(p.id)
       if (form.id === p.id) setForm(blank)
-      load()
+      await load()
     } catch (e) { setError((e as Error).message) }
   }
 

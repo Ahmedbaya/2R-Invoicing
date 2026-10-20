@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Category, CategoryInput } from '../../shared/types'
+import { confirmAction } from '../lib/confirm'
 
 const blank: CategoryInput = { name: '', customs_code: '' }
 
@@ -20,16 +21,15 @@ export default function CategoriesPage() {
     } catch (e) { setError((e as Error).message) }
   }
 
-  const remove = async (c: Category) => {
-    if (!(await window.api.confirm(`Delete the category "${c.name}"?`))) return
+    const remove = async (c: Category) => {
     setError(null)
     try {
+      if (!(await confirmAction(`Delete the category "${c.name}"?`))) return
       await window.api.categories.remove(c.id)
       if (form.id === c.id) setForm(blank)
-      load()
+      await load()
     } catch (e) { setError((e as Error).message) }
   }
-
   return (
     <>
       <h1 className="mb-4 text-2xl font-semibold">Categories</h1>
