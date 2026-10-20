@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatNumber } from '../../shared/calc'
 import type { InvoiceListRow } from '../../shared/types'
+import StatusBadge from '../components/StatusBadge'
 
 export default function InvoiceList() {
   const [rows, setRows] = useState<InvoiceListRow[] | null>(null)
@@ -37,7 +38,7 @@ export default function InvoiceList() {
                 <td className="p-2">{r.client_name ?? 'No client'}</td>
                 <td className="p-2">{r.issue_date.split('-').reverse().join('/')}</td>
                 <td className="p-2 num">{formatNumber(r.total_amount, 2)} {r.currency}</td>
-                <td className="p-2">{r.status === 'finalized' ? 'Finalized' : r.number ? 'Being edited' : 'Draft'}</td>
+                <td className="p-2"><StatusBadge status={r.status} hasNumber={r.number !== null} /></td>
                 <td className="p-2 text-right"><button className="text-alert underline" onClick={() => remove(r)}>Delete</button></td>
               </tr>
             ))}

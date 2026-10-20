@@ -88,6 +88,19 @@ export interface InvoiceListRow {
   total_amount: string
   currency: string
 }
+export interface DashboardStats {
+  year: number
+  revenue_month: string
+  revenue_prev_month: string
+  revenue_year: string
+  invoices_month: number
+  drafts: number
+  next_number: number
+  monthly: string[] // 12 entries, Jan to Dec of the current year
+  by_category: { customs_code: string; name: string | null; total: string }[]
+  top_clients: { name: string; total: string; count: number }[]
+  recent: InvoiceListRow[]
+}
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string }
 
@@ -95,6 +108,7 @@ export interface Api {
   db: { ping(): Promise<true> }
   clients: { list(): Promise<Client[]>; save(c: ClientInput): Promise<Client>; remove(id: number): Promise<true> }
   categories: { list(): Promise<Category[]>; save(c: CategoryInput): Promise<Category>; remove(id: number): Promise<true> }
+  dashboard: { stats(): Promise<DashboardStats> }
   products: { list(): Promise<Product[]>; save(p: ProductInput): Promise<Product>; remove(id: number): Promise<true> }
   invoices: {
     list(): Promise<InvoiceListRow[]>

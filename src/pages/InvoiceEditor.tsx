@@ -4,6 +4,8 @@ import { amountInWordsFr } from '../../shared/amountInWords'
 import { computeTotals, formatNumber } from '../../shared/calc'
 import type { Category, Client, InvoiceRecord, Product } from '../../shared/types'
 import { getUserName } from '../lib/user'
+import StatusBadge from '../components/StatusBadge'
+import { useToast } from '../lib/toast'
 
 interface Row { key: string; product_id: number | null; item_code: string; order_name: string; customs_code: string; description: string; quantity: string; unit_price: string }
 const newRow = (): Row => ({ key: crypto.randomUUID(), product_id: null, item_code: '', order_name: '', customs_code: '', description: '', quantity: '', unit_price: '' })
@@ -11,6 +13,7 @@ const today = () => new Date().toISOString().slice(0, 10)
 
 export default function InvoiceEditor() {
   const { id } = useParams()
+  const toast = useToast()
   const navigate = useNavigate()
   const [clients, setClients] = useState<Client[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -23,8 +26,6 @@ export default function InvoiceEditor() {
   const [rows, setRows] = useState<Row[]>([newRow()])
   const [lg, setLg] = useState({ customs_declaration: '', transporter: '', gross_weight_kg: '', net_weight_kg: '', pallets: '' })
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
 
   const readOnly = meta.status === 'finalized'
   const totals = useMemo(() => computeTotals(rows), [rows])
@@ -43,8 +44,8 @@ export default function InvoiceEditor() {
   useEffect(() => {
     Promise.all([window.api.clients.list(), window.api.products.list(), window.api.categories.list()])
       .then(([c, p, cat]) => { setClients(c); setProducts(p); setCategories(cat) })
-      .catch((e: Error) => setError(e.message))
-    if (id) window.api.invoices.get(Number(id)).then(hydrate).catch((e: Error) => setError(e.message))
+      .catch((e: Error) => toast.error(e.message))
+    if (id) window.api.invoices.get(Number(id)).then(hydrate).catch((e: Error) => toast.error(e.message))
   }, [id])
 
   const patchRow = (key: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)))
@@ -79,9 +80,16 @@ export default function InvoiceEditor() {
     return rec
   }
 
-  const run = async (fn: () => Promise<string | void>) => {
-    setBusy(true); setError(null); setNotice(null)
-    try { const msg = await fn(); if (msg) setNotice(msg) } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
+    const run = async (fn: () => Promise<string | void>) => {
+    setBusy(true)
+    try {
+      const msg = await fn()
+      if (msg) toast.success(msg)
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   const saveDraft = () => run(async () => { await persist(); return 'Draft saved.' })
@@ -115,7 +123,10 @@ export default function InvoiceEditor() {
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{meta.number ? `Invoice ${meta.number} / ${meta.year}${readOnly ? '' : ' (being edited)'}` : 'New invoice'}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold">{meta.number ? `Invoice ${meta.number} / ${meta.year}` : 'New invoice'}</h1>
+          {meta.id && <StatusBadge status={meta.status} hasNumber={meta.number !== null} />}
+        </div>
         <div className="flex gap-2">
           {meta.id && <button className="btn-quiet text-alert" disabled={busy} onClick={remove}>Delete</button>}
           {readOnly && <button className="btn-quiet" disabled={busy} onClick={unlock}>Edit invoice</button>}
@@ -124,8 +135,6 @@ export default function InvoiceEditor() {
           {!readOnly && <button className="btn-primary" disabled={busy} onClick={finalize}>Finalize</button>}
         </div>
       </div>
-      {error && <p role="alert" className="mb-3 rounded bg-alert/10 p-2 text-alert">{error}</p>}
-      {notice && <p role="status" className="mb-3 rounded bg-thread/10 p-2 text-thread-dark">{notice}</p>}
       {readOnly && <p className="mb-3 text-sm">This invoice is finalized. Select “Edit invoice” to change it.</p>}
 
       <fieldset disabled={readOnly || busy} className="space-y-5">

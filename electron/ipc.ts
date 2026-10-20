@@ -6,6 +6,7 @@ import { ping } from './db'
 import { deleteInvoice, finalizeInvoice, getInvoice, listInvoices, saveDraft, unlockInvoice } from './invoices'
 import { exportInvoicePdf } from './pdf'
 import { categorySchema, clientSchema, draftSchema, finalizeSchema, idSchema, productSchema } from './schemas'
+import { getDashboardStats } from './dashboard'
 
 function message(err: unknown): string {
   if (err instanceof ZodError) {
@@ -39,6 +40,7 @@ export function registerIpc() {
   handle('products:save', productSchema, (p) => saveProduct(p))
   handle('categories:list', null, () => listCategories())
   handle('categories:save', categorySchema, (c) => saveCategory(c))
+  handle('dashboard:stats', null, () => getDashboardStats())
   handle('categories:delete', idSchema, (id) => deleteCategory(id))
   handle('products:delete', idSchema, (id) => deleteProduct(id))
   handle('invoices:list', null, () => listInvoices())

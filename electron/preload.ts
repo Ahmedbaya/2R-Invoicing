@@ -15,6 +15,7 @@ const api: Api = {
     save: (c) => call('clients:save', c),
     remove: (id) => call('clients:delete', id),
   },
+    dashboard: { stats: () => call('dashboard:stats') },
     categories: {
     list: () => call('categories:list'),
     save: (c) => call('categories:save', c),
