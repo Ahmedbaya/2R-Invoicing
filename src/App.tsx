@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { CategoriesIcon, ClientsIcon, DashboardIcon, InvoiceIcon, ProductsIcon } from './components/icons'
+import { LANGS, useI18n, type Lang } from './lib/i18n'
 import { ToastProvider } from './lib/toast'
 import { getUserName, setUserName } from './lib/user'
 import CategoriesPage from './pages/CategoriesPage'
@@ -9,13 +10,14 @@ import Dashboard from './pages/Dashboard'
 import InvoiceEditor from './pages/InvoiceEditor'
 import InvoiceList from './pages/InvoiceList'
 import ProductsPage from './pages/ProductsPage'
+import type { Key } from './locales/en'
 
-const NAV = [
-  { to: '/dashboard', label: 'Dashboard', Icon: DashboardIcon },
-  { to: '/invoices', label: 'Invoices', Icon: InvoiceIcon },
-  { to: '/clients', label: 'Clients', Icon: ClientsIcon },
-  { to: '/products', label: 'Products', Icon: ProductsIcon },
-  { to: '/categories', label: 'Categories', Icon: CategoriesIcon },
+const NAV: { to: string; label: Key; Icon: () => JSX.Element }[] = [
+  { to: '/dashboard', label: 'nav.dashboard', Icon: DashboardIcon },
+  { to: '/invoices', label: 'nav.invoices', Icon: InvoiceIcon },
+  { to: '/clients', label: 'nav.clients', Icon: ClientsIcon },
+  { to: '/products', label: 'nav.products', Icon: ProductsIcon },
+  { to: '/categories', label: 'nav.categories', Icon: CategoriesIcon },
 ]
 
 const link = ({ isActive }: { isActive: boolean }) =>
@@ -24,6 +26,7 @@ const link = ({ isActive }: { isActive: boolean }) =>
   }`
 
 export default function App() {
+  const { t, lang, setLang } = useI18n()
   // undefined = still checking, null = connected, string = error message
   const [dbError, setDbError] = useState<string | null | undefined>(undefined)
   const [name, setName] = useState(getUserName())
@@ -33,8 +36,8 @@ export default function App() {
   }, [])
   useEffect(() => {
     check()
-    const t = setInterval(check, 60000)
-    return () => clearInterval(t)
+    const timer = setInterval(check, 60000)
+    return () => clearInterval(timer)
   }, [check])
 
   return (
@@ -45,21 +48,28 @@ export default function App() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-sm font-bold text-ink">2R</div>
             <div>
               <div className="text-sm font-semibold leading-tight">2R Confection</div>
-              <div className="text-xs text-white/60">Invoicing</div>
+              <div className="text-xs text-white/60">{t('app.subtitle')}</div>
             </div>
           </div>
           <nav className="flex-1 space-y-1">
             {NAV.map(({ to, label, Icon }) => (
-              <NavLink key={to} to={to} className={link}><Icon /> {label}</NavLink>
+              <NavLink key={to} to={to} className={link}><Icon /> {t(label)}</NavLink>
             ))}
           </nav>
           <div className="space-y-3 p-4">
             <div role="status" className="flex items-center gap-2 text-xs text-white/70">
               <span className={`h-2 w-2 rounded-full ${dbError === undefined ? 'bg-amber-400' : dbError ? 'bg-red-500' : 'bg-emerald-400'}`} />
-              {dbError === undefined ? 'Connecting…' : dbError ? 'Database offline' : 'Database connected'}
+              {dbError === undefined ? t('db.connecting') : dbError ? t('db.offline') : t('db.connected')}
             </div>
             <div>
-              <label className="mb-1 block text-xs text-white/70" htmlFor="me">Your name (saved on invoices)</label>
+              <label className="mb-1 block text-xs text-white/70" htmlFor="lang">{t('lang.label')}</label>
+              <select id="lang" value={lang} onChange={(e) => setLang(e.target.value as Lang)}
+                className="w-full rounded bg-white/10 px-2 py-1 text-sm text-white [&>option]:text-ink">
+                {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-white/70" htmlFor="me">{t('user.nameLabel')}</label>
               <input id="me" className="w-full rounded bg-white/10 px-2 py-1 text-sm" value={name}
                 onChange={(e) => { setName(e.target.value); setUserName(e.target.value) }} />
             </div>
@@ -69,7 +79,7 @@ export default function App() {
           {dbError && (
             <div role="alert" className="flex items-center justify-between bg-alert px-6 py-2 text-sm text-white">
               <span>{dbError}</span>
-              <button className="underline" onClick={check}>Try again</button>
+              <button className="underline" onClick={check}>{t('db.tryAgain')}</button>
             </div>
           )}
           <div className="mx-auto max-w-6xl p-6">

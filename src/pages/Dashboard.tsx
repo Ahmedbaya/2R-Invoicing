@@ -1,11 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { formatNumber } from '../../shared/calc'
 import type { DashboardStats } from '../../shared/types'
 import { PlusIcon } from '../components/icons'
 import StatusBadge from '../components/StatusBadge'
+import { useI18n } from '../lib/i18n'
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const eur = (v: string) => `${formatNumber(v, 2)} €`
 const compact = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',')} k` : String(Math.round(n)))
 
@@ -30,15 +30,7 @@ function Panel({ title, children, className = '' }: { title: string; children: R
   )
 }
 
-function trend(cur: string, prev: string) {
-  const c = Number(cur)
-  const p = Number(prev)
-  if (!p) return <span>No finalized invoices last month</span>
-  const pct = ((c - p) / p) * 100
-  return <span className={pct >= 0 ? 'text-emerald-700' : 'text-alert'}>{pct >= 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(0)} % vs last month</span>
-}
-
-function BarChart({ values, currentMonth }: { values: number[]; currentMonth: number }) {
+function BarChart({ values, months, currentMonth, label }: { values: number[]; months: string[]; currentMonth: number; label: string }) {
   const W = 600
   const base = 190
   const top = 20
@@ -46,7 +38,7 @@ function BarChart({ values, currentMonth }: { values: number[]; currentMonth: nu
   const slot = W / 12
   const bw = slot * 0.6
   return (
-    <svg viewBox={`0 0 ${W} 214`} className="w-full" role="img" aria-label="Revenue by month">
+    <svg viewBox={`0 0 ${W} 214`} className="w-full" role="img" aria-label={label}>
       <line x1="0" x2={W} y1={base} y2={base} className="stroke-rule" />
       {values.map((v, i) => {
         const h = (v / max) * (base - top)
@@ -54,10 +46,10 @@ function BarChart({ values, currentMonth }: { values: number[]; currentMonth: nu
         return (
           <g key={i}>
             <rect x={x} y={base - h} width={bw} height={v > 0 ? Math.max(h, 2) : 0} rx="3" className={i === currentMonth ? 'fill-thread' : 'fill-thread/40'}>
-              <title>{`${MONTHS[i]}: ${eur(String(v))}`}</title>
+              <title>{`${months[i]}: ${eur(String(v))}`}</title>
             </rect>
             {v > 0 && <text x={x + bw / 2} y={base - h - 5} textAnchor="middle" className="fill-ink text-[10px]">{compact(v)}</text>}
-            <text x={x + bw / 2} y={base + 16} textAnchor="middle" className="fill-ink/60 text-[11px]">{MONTHS[i]}</text>
+            <text x={x + bw / 2} y={base + 16} textAnchor="middle" className="fill-ink/60 text-[11px]">{months[i]}</text>
           </g>
         )
       })}
@@ -66,6 +58,7 @@ function BarChart({ values, currentMonth }: { values: number[]; currentMonth: nu
 }
 
 export default function Dashboard() {
+  const { t, locale } = useI18n()
   const [s, setS] = useState<DashboardStats | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -75,46 +68,64 @@ export default function Dashboard() {
   }
   useEffect(() => { load() }, [])
 
-  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const months = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleDateString(locale, { month: 'short' })),
+    [locale],
+  )
+  const today = new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   const yearTotal = Number(s?.revenue_year ?? 0)
+
+  const trend = (cur: string, prev: string) => {
+    const c = Number(cur)
+    const p = Number(prev)
+    if (!p) return <span>{t('dash.trendNone')}</span>
+    const pct = ((c - p) / p) * 100
+    return (
+      <span className={pct >= 0 ? 'text-emerald-700' : 'text-alert'}>
+        {pct >= 0 ? '▲' : '▼'} {t('dash.trendVs', { pct: Math.abs(pct).toFixed(0) })}
+      </span>
+    )
+  }
 
   return (
     <>
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <h1 className="text-2xl font-semibold">{t('dash.title')}</h1>
           <p className="text-sm text-ink/70">{today}</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/clients" className="btn-quiet">Add client</Link>
-          <Link to="/products" className="btn-quiet">Add product</Link>
-          <Link to="/invoices/new" className="btn-primary gap-2"><PlusIcon /> New invoice</Link>
+          <Link to="/clients" className="btn-quiet">{t('dash.addClient')}</Link>
+          <Link to="/products" className="btn-quiet">{t('dash.addProduct')}</Link>
+          <Link to="/invoices/new" className="btn-primary gap-2"><PlusIcon /> {t('dash.newInvoice')}</Link>
         </div>
       </div>
 
       {error && (
         <div role="alert" className="mb-4 rounded border border-alert/30 bg-white p-3 text-sm text-alert">
-          {error} <button className="ml-2 underline" onClick={load}>Try again</button>
+          {error} <button className="ml-2 underline" onClick={load}>{t('db.tryAgain')}</button>
         </div>
       )}
-      {!s && !error && <p>Loading…</p>}
+      {!s && !error && <p>{t('common.loading')}</p>}
 
       {s && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Card label="Revenue this month" value={eur(s.revenue_month)} hint={trend(s.revenue_month, s.revenue_prev_month)} />
-            <Card label={`Revenue ${s.year}`} value={eur(s.revenue_year)} hint={`${s.invoices_month} invoice${s.invoices_month === 1 ? '' : 's'} issued this month`} />
-            <Card label="Drafts waiting" value={String(s.drafts)} hint={s.drafts > 0 ? 'Open the list to finish them' : 'Nothing pending'} to="/invoices" warn={s.drafts > 0} />
-            <Card label="Next invoice number" value={`${s.next_number} / ${s.year}`} hint="Assigned when you finalize" />
+            <Card label={t('dash.revenueMonth')} value={eur(s.revenue_month)} hint={trend(s.revenue_month, s.revenue_prev_month)} />
+            <Card label={t('dash.revenueYear', { year: s.year })} value={eur(s.revenue_year)}
+              hint={s.invoices_month === 1 ? t('dash.issuedOne') : t('dash.issuedMany', { n: s.invoices_month })} />
+            <Card label={t('dash.drafts')} value={String(s.drafts)} to="/invoices" warn={s.drafts > 0}
+              hint={s.drafts > 0 ? t('dash.draftsHint') : t('dash.nothingPending')} />
+            <Card label={t('dash.nextNumber')} value={`${s.next_number} / ${s.year}`} hint={t('dash.nextNumberHint')} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <Panel title={`Monthly revenue ${s.year}`} className="lg:col-span-2">
-              {yearTotal === 0 ? <p className="text-sm text-ink/70">No finalized invoices yet this year.</p>
-                : <BarChart values={s.monthly.map(Number)} currentMonth={new Date().getMonth()} />}
+            <Panel title={t('dash.monthly', { year: s.year })} className="lg:col-span-2">
+              {yearTotal === 0 ? <p className="text-sm text-ink/70">{t('dash.noFinalized')}</p>
+                : <BarChart values={s.monthly.map(Number)} months={months} currentMonth={new Date().getMonth()} label={t('dash.chartLabel')} />}
             </Panel>
-            <Panel title="Revenue by customs category">
-              {s.by_category.length === 0 ? <p className="text-sm text-ink/70">Nothing to show yet.</p> : (
+            <Panel title={t('dash.byCategory')}>
+              {s.by_category.length === 0 ? <p className="text-sm text-ink/70">{t('dash.nothingYet')}</p> : (
                 <ul className="space-y-3 text-sm">
                   {s.by_category.map((c) => {
                     const total = Number(c.total)
@@ -122,7 +133,7 @@ export default function Dashboard() {
                     return (
                       <li key={c.customs_code}>
                         <div className="flex justify-between gap-2">
-                          <span>{c.customs_code || 'No customs code'}{c.name ? ` · ${c.name}` : ''}</span>
+                          <span>{c.customs_code || t('dash.noCustoms')}{c.name ? ` · ${c.name}` : ''}</span>
                           <span className="tabular-nums">{yearTotal ? ((total / yearTotal) * 100).toFixed(0) : 0} %</span>
                         </div>
                         <div className="mt-1 h-2 rounded bg-thread/10"><div className="h-2 rounded bg-thread" style={{ width: `${(total / max) * 100}%` }} /></div>
@@ -136,8 +147,8 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <Panel title={`Top clients ${s.year}`}>
-              {s.top_clients.length === 0 ? <p className="text-sm text-ink/70">Nothing to show yet.</p> : (
+            <Panel title={t('dash.topClients', { year: s.year })}>
+              {s.top_clients.length === 0 ? <p className="text-sm text-ink/70">{t('dash.nothingYet')}</p> : (
                 <ol className="space-y-2 text-sm">
                   {s.top_clients.map((c, i) => (
                     <li key={c.name} className="flex items-center justify-between gap-2">
@@ -148,19 +159,19 @@ export default function Dashboard() {
                 </ol>
               )}
             </Panel>
-            <Panel title="Recent invoices" className="lg:col-span-2">
+            <Panel title={t('dash.recent')} className="lg:col-span-2">
               {s.recent.length === 0 ? (
-                <p className="text-sm">No invoices yet. <Link className="text-thread underline" to="/invoices/new">Create the first one</Link>.</p>
+                <p className="text-sm">{t('dash.noInvoices')} <Link className="text-thread underline" to="/invoices/new">{t('dash.createFirst')}</Link>.</p>
               ) : (
                 <table className="w-full text-sm">
                   <thead className="text-left text-ink/70">
-                    <tr><th className="pb-1">Number</th><th className="pb-1">Client</th><th className="pb-1">Date</th><th className="pb-1 num">Total</th><th className="pb-1 pl-3">Status</th></tr>
+                    <tr><th className="pb-1">{t('col.number')}</th><th className="pb-1">{t('col.client')}</th><th className="pb-1">{t('col.date')}</th><th className="pb-1 num">{t('col.total')}</th><th className="pb-1 pl-3">{t('col.status')}</th></tr>
                   </thead>
                   <tbody>
                     {s.recent.map((r) => (
                       <tr key={r.id} className="border-t border-rule">
-                        <td className="py-1.5"><Link className="text-thread underline" to={`/invoices/${r.id}`}>{r.number ? `${r.number} / ${r.year}` : 'Draft'}</Link></td>
-                        <td className="py-1.5">{r.client_name ?? 'No client'}</td>
+                        <td className="py-1.5"><Link className="text-thread underline" to={`/invoices/${r.id}`}>{r.number ? `${r.number} / ${r.year}` : t('status.draft')}</Link></td>
+                        <td className="py-1.5">{r.client_name ?? t('common.noClient')}</td>
                         <td className="py-1.5">{r.issue_date.split('-').reverse().join('/')}</td>
                         <td className="py-1.5 num">{formatNumber(r.total_amount, 2)} {r.currency}</td>
                         <td className="py-1.5 pl-3"><StatusBadge status={r.status} hasNumber={r.number !== null} /></td>
