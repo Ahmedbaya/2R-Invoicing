@@ -1,6 +1,7 @@
 import dns from 'node:dns'
 import net from 'node:net'
-
+process.on('uncaughtException', (e) => console.error('[uncaught]', e))
+process.on('unhandledRejection', (e) => console.error('[unhandled]', e))
 // Prefer IPv4 and give each address more time. Node's default of 250 ms per address
 // is too short on slow or IPv6-translated networks.
 dns.setDefaultResultOrder('ipv4first')

@@ -87,6 +87,7 @@ export interface InvoiceListRow {
   issue_date: string
   total_amount: string
   currency: string
+  search_text?: string // codes, order names and article names, used only for searching
 }
 export interface DashboardStats {
   year: number
@@ -126,6 +127,7 @@ export interface Api {
     get(id: number): Promise<InvoiceRecord>
     saveDraft(d: DraftInput): Promise<InvoiceRecord>
     finalize(a: { id: number; version: number }): Promise<InvoiceRecord>
+    duplicate(a: { id: number; issue_date: string; created_by: string }): Promise<InvoiceRecord>
     unlock(a: { id: number; version: number }): Promise<InvoiceRecord>
     remove(id: number): Promise<true>
     exportPdf(id: number): Promise<string | null> // saved path, or null if cancelled

@@ -27,22 +27,29 @@ export function getPool(): Pool {
       keepAlive: true,
     })
     pool.on('error', (e) => console.error('Idle PG client error', e))
+    // Without a listener on each connection, a reset during a query crashes the whole app.
+    pool.on('connect', (client) => client.on('error', (e) => console.error('PG client error', e.message)))
   }
   return pool
 }
 
 export async function withTx<T>(fn: (c: PoolClient) => Promise<T>): Promise<T> {
   const c = await getPool().connect()
+  let broken = false
+  const onError = () => { broken = true }
+  c.on('error', onError)
   try {
     await c.query('BEGIN')
     const out = await fn(c)
     await c.query('COMMIT')
     return out
   } catch (e) {
-    await c.query('ROLLBACK').catch(() => {})
+    broken = broken || ['ECONNRESET', 'ETIMEDOUT', 'EPIPE'].includes((e as { code?: string }).code ?? '')
+    if (!broken) await c.query('ROLLBACK').catch(() => {})
     throw e
   } finally {
-    c.release()
+    c.removeListener('error', onError)
+    c.release(broken) // true = throw this connection away instead of reusing it
   }
 }
 

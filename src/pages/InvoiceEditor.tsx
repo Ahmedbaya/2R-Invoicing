@@ -8,6 +8,7 @@ import { confirmAction } from '../lib/confirm'
 import { useI18n } from '../lib/i18n'
 import { useToast } from '../lib/toast'
 import { getUserName } from '../lib/user'
+import { localToday } from '../lib/date'
 
 interface Row { key: string; product_id: number | null; item_code: string; order_name: string; customs_code: string; description: string; quantity: string; unit_price: string }
 const newRow = (): Row => ({ key: crypto.randomUUID(), product_id: null, item_code: '', order_name: '', customs_code: '', description: '', quantity: '', unit_price: '' })
@@ -124,7 +125,12 @@ export default function InvoiceEditor() {
     await window.api.invoices.remove(meta.id!)
     navigate('/invoices', { replace: true })
   })
-
+    const duplicate = () => run(async () => {
+    const saved = readOnly ? null : await persist()
+    const copy = await window.api.invoices.duplicate({ id: saved?.id ?? meta.id!, issue_date: localToday(), created_by: getUserName() })
+    navigate(`/invoices/${copy.id}`)
+    return t('ed.duplicated')
+  })
   const exportPdf = () => run(async () => {
     const saved = readOnly ? null : await persist()
     const path = await window.api.invoices.exportPdf(saved?.id ?? meta.id!)
@@ -139,6 +145,7 @@ export default function InvoiceEditor() {
           {meta.id && <StatusBadge status={meta.status} hasNumber={meta.number !== null} />}
         </div>
         <div className="flex gap-2">
+          {meta.id && <button className="btn-quiet" disabled={busy} onClick={duplicate}>{t('ed.duplicate')}</button>}
           {meta.id && <button className="btn-quiet text-alert" disabled={busy} onClick={remove}>{t('common.delete')}</button>}
           {readOnly && <button className="btn-quiet" disabled={busy} onClick={unlock}>{t('ed.edit')}</button>}
           {!readOnly && <button className="btn-quiet" disabled={busy} onClick={saveDraft}>{meta.number ? t('ed.saveChanges') : t('ed.saveDraft')}</button>}

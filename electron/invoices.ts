@@ -10,9 +10,11 @@ const norm = (v: unknown) => (v === null || v === undefined ? '' : dec(v as stri
 export async function listInvoices(): Promise<InvoiceListRow[]> {
   const { rows } = await getPool().query(
     `SELECT i.id, i.status, i.number, i.year, i.issue_date, i.total_amount, i.currency,
-            COALESCE(i.client_snapshot->>'company_name', c.company_name) AS client_name
+            COALESCE(i.client_snapshot->>'company_name', c.company_name) AS client_name,
+            COALESCE((SELECT string_agg(concat_ws(' ', ii.item_code, ii.order_name, ii.description), ' ')
+                        FROM invoice_items ii WHERE ii.invoice_id = i.id), '') AS search_text
        FROM invoices i LEFT JOIN clients c ON c.id = i.client_id
-      ORDER BY i.year DESC NULLS FIRST, i.number DESC NULLS FIRST, i.id DESC LIMIT 300`,
+      ORDER BY i.year DESC NULLS FIRST, i.number DESC NULLS FIRST, i.id DESC LIMIT 1000`,
   )
   return rows
 }
@@ -168,4 +170,30 @@ export async function deleteInvoice(id: number): Promise<true> {
     await c.query('DELETE FROM invoices WHERE id=$1', [id])
   })
   return true
+}
+export async function duplicateInvoice(id: number, issueDate: string, createdBy: string): Promise<InvoiceRecord> {
+  const newId = await withTx(async (c) => {
+    const created = await c.query(
+      `INSERT INTO invoices (client_id, issue_date, currency, vat_note, total_amount, total_quantity, created_by)
+       SELECT client_id, $2::date, currency, vat_note, total_amount, total_quantity, $3::text
+         FROM invoices WHERE id = $1 RETURNING id`,
+      [id, issueDate, createdBy],
+    )
+    if (!created.rows[0]) throw new Error('Invoice not found')
+    const nid: number = created.rows[0].id
+    await c.query(
+      `INSERT INTO invoice_items (invoice_id, position, product_id, item_code, order_name, customs_code, description, quantity, unit_price, line_total)
+       SELECT $2::int, position, product_id, item_code, order_name, customs_code, description, quantity, unit_price, line_total
+         FROM invoice_items WHERE invoice_id = $1`,
+      [id, nid],
+    )
+    await c.query(
+      `INSERT INTO invoice_logistics (invoice_id, customs_declaration, transporter, gross_weight_kg, net_weight_kg, pallets)
+       SELECT $2::int, customs_declaration, transporter, gross_weight_kg, net_weight_kg, pallets
+         FROM invoice_logistics WHERE invoice_id = $1`,
+      [id, nid],
+    )
+    return nid
+  })
+  return getInvoice(newId)
 }

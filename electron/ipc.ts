@@ -3,11 +3,12 @@ import { ZodError, type ZodType } from 'zod'
 import type { Result } from '../shared/types'
 import { deleteCategory, deleteClient, deleteProduct, listCategories, listClients, listProducts, saveCategory, saveClient, saveProduct } from './catalog'
 import { ping } from './db'
-import { deleteInvoice, finalizeInvoice, getInvoice, listInvoices, saveDraft, unlockInvoice } from './invoices'
+import { deleteInvoice, duplicateInvoice, finalizeInvoice, getInvoice, listInvoices, saveDraft, unlockInvoice } from './invoices'
 import { exportInvoicePdf } from './pdf'
-import { categorySchema, clientSchema, draftSchema, finalizeSchema, idSchema, productSchema } from './schemas'
+import { categorySchema, clientSchema, draftSchema, duplicateSchema, finalizeSchema, idSchema, productSchema } from './schemas'
 import { getDashboardStats } from './dashboard'
 import { createBackup, listBackups, openBackupFolder, saveBackupAs } from './backup'
+
 
 function message(err: unknown): string {
   if (err instanceof ZodError) {
@@ -16,6 +17,9 @@ function message(err: unknown): string {
   }
   const e = err as Error & { code?: string }
   if (e.code === 'ECONNREFUSED' || e.code === 'ETIMEDOUT') return 'Cannot reach the database server.'
+  if (e.code === 'ECONNRESET' || e.code === 'EPIPE') {
+    return 'The connection to the database was interrupted. Check your internet, then check the invoice list before saving again.'
+  }
   return e.message || 'Unexpected error'
 }
 
@@ -52,6 +56,7 @@ export function registerIpc() {
   handle('invoices:get', idSchema, (id) => getInvoice(id))
   handle('invoices:saveDraft', draftSchema, (d) => saveDraft(d))
   handle('invoices:finalize', finalizeSchema, ({ id, version }) => finalizeInvoice(id, version))
+  handle('invoices:duplicate', duplicateSchema, ({ id, issue_date, created_by }) => duplicateInvoice(id, issue_date, created_by))
   handle('invoices:unlock', finalizeSchema, ({ id, version }) => unlockInvoice(id, version))
   handle('invoices:delete', idSchema, (id) => deleteInvoice(id))
   handle('invoices:exportPdf', idSchema, async (id, e) =>

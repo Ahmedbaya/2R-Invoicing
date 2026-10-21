@@ -59,3 +59,8 @@ export const draftSchema = z.object({
 
 export const idSchema = z.number().int().positive()
 export const finalizeSchema = z.object({ id: idSchema, version: z.number().int() })
+export const duplicateSchema = z.object({
+  id: z.number().int().positive(),
+  issue_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date'),
+  created_by: t(80),
+})

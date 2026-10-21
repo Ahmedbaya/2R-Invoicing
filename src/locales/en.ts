@@ -158,6 +158,19 @@ export const en = {
   'bk.done': 'Backup saved: {name}',
   'bk.copySaved': 'Backup copy saved to {path}',
   'bk.restoreNote': 'Also keep a copy of these files somewhere else (USB drive or cloud folder). To restore a backup, run “npm run db:restore” on the development computer, or ask for help.',
+     'list.search': 'Search number, client, article, order, date…',
+  'list.allStatuses': 'All statuses',
+  'list.allYears': 'All years',
+  'list.allClients': 'All clients',
+  'list.clear': 'Clear filters',
+  'list.countOne': '1 invoice',
+  'list.countMany': '{n} invoices',
+  'list.total': 'Total shown',
+  'list.noMatch': 'No invoice matches these filters.',
+  'list.duplicate': 'Duplicate',
+  'list.duplicated': 'Copy created as a new draft.',
+  'ed.duplicate': 'Duplicate',
+  'ed.duplicated': 'Copy created as a new draft. You are now editing the copy.', 
 }
 
 export type Key = keyof typeof en
