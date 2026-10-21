@@ -9,6 +9,7 @@ import 'dotenv/config'
 import path from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
 import { registerIpc } from './ipc'
+import { startAutoBackup } from './backup'
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -40,6 +41,7 @@ function createWindow() {
 app.whenReady().then(() => {
   registerIpc()
   createWindow()
+  startAutoBackup()
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow())
 })
 app.on('window-all-closed', () => process.platform !== 'darwin' && app.quit())

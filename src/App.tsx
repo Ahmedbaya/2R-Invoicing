@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
-import { CategoriesIcon, ClientsIcon, DashboardIcon, InvoiceIcon, ProductsIcon } from './components/icons'
+import { BackupIcon, CategoriesIcon, ClientsIcon, DashboardIcon, InvoiceIcon, ProductsIcon } from './components/icons'
+import BackupsPage from './pages/BackupsPage'
 import { LANGS, useI18n, type Lang } from './lib/i18n'
 import { ToastProvider } from './lib/toast'
 import { getUserName, setUserName } from './lib/user'
@@ -18,6 +19,7 @@ const NAV: { to: string; label: Key; Icon: () => JSX.Element }[] = [
   { to: '/clients', label: 'nav.clients', Icon: ClientsIcon },
   { to: '/products', label: 'nav.products', Icon: ProductsIcon },
   { to: '/categories', label: 'nav.categories', Icon: CategoriesIcon },
+  { to: '/backups', label: 'nav.backups', Icon: BackupIcon },
 ]
 
 const link = ({ isActive }: { isActive: boolean }) =>
@@ -92,6 +94,7 @@ export default function App() {
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/backups" element={<BackupsPage />} />
             </Routes>
           </div>
         </main>

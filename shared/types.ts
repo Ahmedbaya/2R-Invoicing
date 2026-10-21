@@ -101,6 +101,16 @@ export interface DashboardStats {
   top_clients: { name: string; total: string; count: number }[]
   recent: InvoiceListRow[]
 }
+export interface BackupInfo {
+  name: string
+  path: string
+  size: number
+  modified: string // ISO date
+}
+export interface BackupList {
+  dir: string
+  files: BackupInfo[] // newest first
+}
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string }
 
@@ -109,6 +119,7 @@ export interface Api {
   clients: { list(): Promise<Client[]>; save(c: ClientInput): Promise<Client>; remove(id: number): Promise<true> }
   categories: { list(): Promise<Category[]>; save(c: CategoryInput): Promise<Category>; remove(id: number): Promise<true> }
   dashboard: { stats(): Promise<DashboardStats> }
+  backup: { list(): Promise<BackupList>; now(): Promise<BackupInfo>; saveAs(): Promise<string | null>; openFolder(): Promise<true> }
   products: { list(): Promise<Product[]>; save(p: ProductInput): Promise<Product>; remove(id: number): Promise<true> }
   invoices: {
     list(): Promise<InvoiceListRow[]>

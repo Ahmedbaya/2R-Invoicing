@@ -15,6 +15,12 @@ const api: Api = {
     save: (c) => call('clients:save', c),
     remove: (id) => call('clients:delete', id),
   },
+    backup: {
+    list: () => call('backup:list'),
+    now: () => call('backup:now'),
+    saveAs: () => call('backup:saveAs'),
+    openFolder: () => call('backup:openFolder'),
+  },
     dashboard: { stats: () => call('dashboard:stats') },
     categories: {
     list: () => call('categories:list'),

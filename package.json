@@ -9,6 +9,7 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "db:restore": "tsx scripts/restore.ts",
     "db:migrate": "tsx scripts/migrate.ts",
     "build": "tsc --noEmit && vite build && electron-builder"
   },

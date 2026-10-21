@@ -7,6 +7,7 @@ import { deleteInvoice, finalizeInvoice, getInvoice, listInvoices, saveDraft, un
 import { exportInvoicePdf } from './pdf'
 import { categorySchema, clientSchema, draftSchema, finalizeSchema, idSchema, productSchema } from './schemas'
 import { getDashboardStats } from './dashboard'
+import { createBackup, listBackups, openBackupFolder, saveBackupAs } from './backup'
 
 function message(err: unknown): string {
   if (err instanceof ZodError) {
@@ -40,6 +41,10 @@ export function registerIpc() {
   handle('products:save', productSchema, (p) => saveProduct(p))
   handle('categories:list', null, () => listCategories())
   handle('categories:save', categorySchema, (c) => saveCategory(c))
+  handle('backup:list', null, () => listBackups())
+  handle('backup:now', null, () => createBackup())
+  handle('backup:saveAs', null, (_i, e) => saveBackupAs(BrowserWindow.fromWebContents(e.sender)))
+  handle('backup:openFolder', null, () => openBackupFolder())
   handle('dashboard:stats', null, () => getDashboardStats())
   handle('categories:delete', idSchema, (id) => deleteCategory(id))
   handle('products:delete', idSchema, (id) => deleteProduct(id))
