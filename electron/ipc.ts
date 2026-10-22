@@ -3,9 +3,9 @@ import { ZodError, type ZodType } from 'zod'
 import type { Result } from '../shared/types'
 import { deleteCategory, deleteClient, deleteProduct, listCategories, listClients, listProducts, saveCategory, saveClient, saveProduct } from './catalog'
 import { ping } from './db'
-import { deleteInvoice, duplicateInvoice, finalizeInvoice, getInvoice, listInvoices, saveDraft, unlockInvoice } from './invoices'
+import { deleteInvoice, duplicateInvoice, finalizeInvoice, getInvoice, lastNumber, listInvoices, saveDraft, unlockInvoice } from './invoices'
 import { exportInvoicePdf } from './pdf'
-import { categorySchema, clientSchema, draftSchema, duplicateSchema, finalizeSchema, idSchema, productSchema } from './schemas'
+import { categorySchema, clientSchema, draftSchema, duplicateSchema, finalizeSchema, idSchema, lastNumberSchema, productSchema } from './schemas'
 import { getDashboardStats } from './dashboard'
 import { createBackup, listBackups, openBackupFolder, saveBackupAs } from './backup'
 
@@ -57,6 +57,7 @@ export function registerIpc() {
   handle('invoices:saveDraft', draftSchema, (d) => saveDraft(d))
   handle('invoices:finalize', finalizeSchema, ({ id, version }) => finalizeInvoice(id, version))
   handle('invoices:duplicate', duplicateSchema, ({ id, issue_date, created_by }) => duplicateInvoice(id, issue_date, created_by))
+  handle('invoices:lastNumber', lastNumberSchema, ({ client_id, year }) => lastNumber(client_id, year))
   handle('invoices:unlock', finalizeSchema, ({ id, version }) => unlockInvoice(id, version))
   handle('invoices:delete', idSchema, (id) => deleteInvoice(id))
   handle('invoices:exportPdf', idSchema, async (id, e) =>

@@ -19,7 +19,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         COALESCE(SUM(total_amount) FILTER (WHERE ${inYear('issue_date')}), 0) AS revenue_year,
         (count(*) FILTER (WHERE ${inMonth('issue_date')}))::int AS invoices_month,
         (SELECT count(*)::int FROM invoices WHERE status = 'draft') AS drafts,
-        COALESCE((SELECT last_number FROM invoice_counters WHERE year = EXTRACT(YEAR FROM CURRENT_DATE)::int), 0) + 1 AS next_number
+        (count(*) FILTER (WHERE ${inYear('issue_date')}))::int AS invoices_year
       FROM invoices WHERE status = 'finalized'`),
     db.query(`
       SELECT EXTRACT(MONTH FROM issue_date)::int AS m, SUM(total_amount) AS total
@@ -55,7 +55,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     revenue_year: String(t.revenue_year),
     invoices_month: t.invoices_month,
     drafts: t.drafts,
-    next_number: t.next_number,
+    invoices_year: t.invoices_year,
     monthly: months,
     by_category: byCategory.rows.map((r) => ({ customs_code: r.customs_code, name: names.get(r.customs_code) ?? null, total: String(r.total) })),
     top_clients: topClients.rows.map((r) => ({ name: r.name, total: String(r.total), count: r.count })),

@@ -99,7 +99,6 @@ export const en = {
   'ed.unlocked': 'Invoice unlocked. Finalize it again when you are done.',
   'ed.pdfSaved': 'PDF saved to {path}',
   'ed.confirmLock': 'Lock invoice {number} again? Its number stays the same.',
-  'ed.confirmFinalize': 'Finalize this invoice? It gets its official number and is locked until you choose to edit it.',
   'ed.confirmUnlock': 'Edit invoice {number}? It keeps its number and stays unlocked until you finalize it again.',
   'ed.confirmDelNum': 'Delete invoice {number}? This cannot be undone.',
   'ed.confirmDelDraft': 'Delete this draft? This cannot be undone.',
@@ -171,6 +170,14 @@ export const en = {
   'list.duplicated': 'Copy created as a new draft.',
   'ed.duplicate': 'Duplicate',
   'ed.duplicated': 'Copy created as a new draft. You are now editing the copy.', 
+  'ed.confirmFinalize': 'Finalize invoice {number}? It is locked until you choose to edit it.',
+  'ed.number': 'Invoice number',
+  'ed.lastNumber': 'Last number used for this client in {year}: {n}',
+  'ed.noNumberYet': 'No invoice yet for this client in {year}.',
+  'ed.pickClientFirst': 'Choose a client to see their last number.',
+  'ed.needNumber': 'Enter the invoice number before finalizing.',
+  'dash.invoicesYear': 'Invoices {year}',
+  'dash.invoicesYearHint': 'Finalized this year',
 }
 
 export type Key = keyof typeof en

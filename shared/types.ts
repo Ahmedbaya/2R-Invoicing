@@ -54,6 +54,7 @@ export interface DraftInput {
   id?: number
   version?: number
   client_id: number | null
+  number: number | null
   issue_date: string // yyyy-mm-dd
   currency: string
   vat_note: string
@@ -96,7 +97,7 @@ export interface DashboardStats {
   revenue_year: string
   invoices_month: number
   drafts: number
-  next_number: number
+  invoices_year: number
   monthly: string[] // 12 entries, Jan to Dec of the current year
   by_category: { customs_code: string; name: string | null; total: string }[]
   top_clients: { name: string; total: string; count: number }[]
@@ -128,6 +129,7 @@ export interface Api {
     saveDraft(d: DraftInput): Promise<InvoiceRecord>
     finalize(a: { id: number; version: number }): Promise<InvoiceRecord>
     duplicate(a: { id: number; issue_date: string; created_by: string }): Promise<InvoiceRecord>
+    lastNumber(a: { client_id: number; year: number }): Promise<number | null>
     unlock(a: { id: number; version: number }): Promise<InvoiceRecord>
     remove(id: number): Promise<true>
     exportPdf(id: number): Promise<string | null> // saved path, or null if cancelled

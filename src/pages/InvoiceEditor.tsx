@@ -26,6 +26,8 @@ export default function InvoiceEditor() {
   const [clientId, setClientId] = useState('')
   const [issueDate, setIssueDate] = useState(today())
   const [currency, setCurrency] = useState('EUR')
+  const [numberText, setNumberText] = useState('')
+  const [lastNum, setLastNum] = useState<number | null>(null)
   const [vatNote, setVatNote] = useState('')
   const [rows, setRows] = useState<Row[]>([newRow()])
   const [lg, setLg] = useState({ customs_declaration: '', transporter: '', gross_weight_kg: '', net_weight_kg: '', pallets: '' })
@@ -41,6 +43,7 @@ export default function InvoiceEditor() {
     setClientId(r.client_id ? String(r.client_id) : '')
     setIssueDate(r.issue_date)
     setCurrency(r.currency)
+    setNumberText(r.number ? String(r.number) : '')
     setVatNote(r.vat_note)
     setRows(
       r.items.length
@@ -49,6 +52,11 @@ export default function InvoiceEditor() {
     )
     setLg({ ...r.logistics, pallets: r.logistics.pallets === null ? '' : String(r.logistics.pallets) })
   }
+    useEffect(() => {
+    const year = Number(issueDate.slice(0, 4))
+    if (!clientId || !year) { setLastNum(null); return }
+    window.api.invoices.lastNumber({ client_id: Number(clientId), year }).then(setLastNum).catch(() => setLastNum(null))
+  }, [clientId, issueDate, meta.version])
 
   useEffect(() => {
     Promise.all([window.api.clients.list(), window.api.products.list(), window.api.categories.list()])
@@ -80,6 +88,7 @@ export default function InvoiceEditor() {
     const rec = await window.api.invoices.saveDraft({
       id: meta.id, version: meta.version,
       client_id: clientId ? Number(clientId) : null,
+      number: numberText ? Number(numberText) : null,
       issue_date: issueDate, currency, vat_note: vatNote,
       items: rows.map(({ key, ...r }) => r),
       logistics: { ...lg, pallets: lg.pallets === '' ? null : Number(lg.pallets) },
@@ -105,7 +114,8 @@ export default function InvoiceEditor() {
   const saveDraft = () => run(async () => { await persist(); return t('ed.saved') })
 
   const finalize = () => run(async () => {
-    const msg = meta.number ? t('ed.confirmLock', { number: invoiceLabel }) : t('ed.confirmFinalize')
+    if (!numberText) throw new Error(t('ed.needNumber'))
+    const msg = t('ed.confirmFinalize', { number: `${numberText} / ${issueDate.slice(0, 4)}` })
     if (!(await confirmAction(msg))) return
     const saved = await persist()
     const done = await window.api.invoices.finalize({ id: saved.id, version: saved.version })
@@ -168,7 +178,19 @@ export default function InvoiceEditor() {
             <input id="date" type="date" className="input" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></div>
           <div><label className="label" htmlFor="cur">{t('ed.currency')}</label>
             <input id="cur" maxLength={3} className="input" value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} /></div>
-          <div className="col-span-4"><label className="label" htmlFor="vat">{t('ed.vat')}</label>
+          <div className="col-span-4"><label className="label" htmlFor="vat">
+                      <div>
+            <label className="label" htmlFor="num">{t('ed.number')}</label>
+            <input id="num" inputMode="numeric" className="input num" value={numberText} onChange={(e) => setNumberText(e.target.value.replace(/\D/g, ''))} />
+          </div>
+          <div className="col-span-3 flex items-end pb-2 text-sm text-ink/70">
+            {clientId
+              ? lastNum
+                ? t('ed.lastNumber', { year: issueDate.slice(0, 4), n: lastNum })
+                : t('ed.noNumberYet', { year: issueDate.slice(0, 4) })
+              : t('ed.pickClientFirst')}
+          </div>
+            {t('ed.vat')}</label>
             <input id="vat" className="input" value={vatNote} onChange={(e) => setVatNote(e.target.value)} /></div>
         </section>
 

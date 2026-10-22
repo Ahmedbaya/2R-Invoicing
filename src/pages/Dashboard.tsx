@@ -116,7 +116,7 @@ export default function Dashboard() {
               hint={s.invoices_month === 1 ? t('dash.issuedOne') : t('dash.issuedMany', { n: s.invoices_month })} />
             <Card label={t('dash.drafts')} value={String(s.drafts)} to="/invoices" warn={s.drafts > 0}
               hint={s.drafts > 0 ? t('dash.draftsHint') : t('dash.nothingPending')} />
-            <Card label={t('dash.nextNumber')} value={`${s.next_number} / ${s.year}`} hint={t('dash.nextNumberHint')} />
+            <Card label={t('dash.invoicesYear', { year: s.year })} value={String(s.invoices_year)} hint={t('dash.invoicesYearHint')} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">

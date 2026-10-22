@@ -38,6 +38,7 @@ const api: Api = {
     saveDraft: (d) => call('invoices:saveDraft', d),
     finalize: (a) => call('invoices:finalize', a),
     duplicate: (a) => call('invoices:duplicate', a),
+    lastNumber: (a) => call('invoices:lastNumber', a),
     unlock: (a) => call('invoices:unlock', a),
     remove: (id) => call('invoices:delete', id),
     exportPdf: (id) => call('invoices:exportPdf', id),
