@@ -19,6 +19,7 @@ export function renderInvoiceHtml(inv: InvoiceRecord, co = COMPANY): string {
     .map(
       (it, i) => `<tr>
         <td class="num">${formatNumber(it.quantity)}</td>
+        <td class="code">${esc(it.item_code)}</td>
         <td>${esc(it.order_name)}</td>
         <td>${esc(it.description)}</td>
         <td class="ctr">${esc(it.customs_code)}</td>
@@ -50,6 +51,7 @@ export function renderInvoiceHtml(inv: InvoiceRecord, co = COMPANY): string {
   tr { break-inside: avoid; }
   th, td { border: 1px solid #000; padding: 1.6mm 2mm; }
   th { background: #eee; }
+  td.code, th.code { white-space: nowrap; }
   td.ctr, th.ctr { text-align: center; white-space: nowrap; }
   .keep { break-inside: avoid; margin-top: 6mm; }   /* totals + logistics stay together on the last page */
   .totals td { border: none; padding: 1mm 2mm; }
@@ -77,7 +79,7 @@ export function renderInvoiceHtml(inv: InvoiceRecord, co = COMPANY): string {
   </div>
 
   <table>
-    <thead><tr><th class="num">Q.TE</th><th>COMMANDE</th><th>ARTICOLO</th><th class="ctr">CODE DOUANE</th><th class="num">PRIX</th><th class="num">TOTAL</th></tr></thead>
+    <thead><tr><th class="num">Q.TE</th><th class="code">CODE</th><th>COMMANDE</th><th>ARTICOLO</th><th class="ctr">CODE DOUANE</th><th class="num">PRIX</th><th class="num">TOTAL</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
 
