@@ -14,6 +14,7 @@ import { startAutoBackup } from './backup'
 
 function createWindow() {
   const win = new BrowserWindow({
+    icon: path.join(__dirname, '../build/icon.png'),
     width: 1280,
     height: 820,
     minWidth: 1000,

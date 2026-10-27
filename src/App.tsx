@@ -12,6 +12,7 @@ import InvoiceEditor from './pages/InvoiceEditor'
 import InvoiceList from './pages/InvoiceList'
 import ProductsPage from './pages/ProductsPage'
 import type { Key } from './locales/en'
+import logo from './assets/logo.png'
 
 const NAV: { to: string; label: Key; Icon: () => JSX.Element }[] = [
   { to: '/dashboard', label: 'nav.dashboard', Icon: DashboardIcon },
@@ -47,7 +48,7 @@ export default function App() {
       <div className="flex h-screen">
         <aside className="flex w-60 flex-col bg-ink text-white">
           <div className="flex items-center gap-3 px-4 py-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-sm font-bold text-ink">2R</div>
+            <img src={logo} alt="2R" className="h-9 w-9 rounded-lg" />
             <div>
               <div className="text-sm font-semibold leading-tight">2R Confection</div>
               <div className="text-xs text-white/60">{t('app.subtitle')}</div>
