@@ -23,7 +23,7 @@ export default defineConfig({
     electron({
       main: {
         entry: 'electron/main.ts',
-        vite: { build: { rollupOptions: { external: ['pg', 'pg-native'] } } },
+        vite: { build: { rollupOptions: { external: ['pg', 'pg-native', 'exceljs'] } } },
       },
       preload: { input: 'electron/preload.ts' },
     }),

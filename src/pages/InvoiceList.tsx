@@ -92,12 +92,21 @@ export default function InvoiceList() {
       navigate(`/invoices/${copy.id}`)
     } catch (e) { toast.error((e as Error).message) }
   }
+    const exportList = async () => {
+    try {
+      const p = await window.api.invoices.exportListExcel(filtered.map((r) => r.id))
+      if (p) toast.success(t('list.excelSaved', { path: p }))
+    } catch (e) { toast.error((e as Error).message) }
+  }
 
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('list.title')}</h1>
-        <Link to="/invoices/new" className="btn-primary">{t('list.new')}</Link>
+        <Link to="/invoices/new" className="btn-primary">{t('list.new')}</Link>        <div className="flex gap-2">
+          <button className="btn-quiet" disabled={filtered.length === 0} onClick={exportList}>{t('list.exportExcel')}</button>
+          <Link to="/invoices/new" className="btn-primary">{t('list.new')}</Link>
+        </div>
       </div>
       {error && <p role="alert" className="mb-3 text-alert">{error}</p>}
       {rows && rows.length === 0 && <p>{t('list.empty')}</p>}

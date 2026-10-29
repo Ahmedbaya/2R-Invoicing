@@ -33,6 +33,22 @@ export interface ProductInput {
   category_id: number
   default_price: string
 }
+export interface ImportRow {
+  line: number
+  code: string
+  name: string
+  category: string
+  price: string
+  action: 'new' | 'update' | 'error'
+  message: string
+}
+export interface ImportPreview {
+  fileName: string
+  rows: ImportRow[]
+  newCount: number
+  updateCount: number
+  errorCount: number
+}
 
 export interface ItemInput {
   product_id: number | null
@@ -117,12 +133,19 @@ export interface BackupList {
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string }
 
 export interface Api {
+  config: { status(): Promise<{ configured: boolean }>; save(url: string): Promise<true> }
   db: { ping(): Promise<true> }
   clients: { list(): Promise<Client[]>; save(c: ClientInput): Promise<Client>; remove(id: number): Promise<true> }
   categories: { list(): Promise<Category[]>; save(c: CategoryInput): Promise<Category>; remove(id: number): Promise<true> }
   dashboard: { stats(): Promise<DashboardStats> }
   backup: { list(): Promise<BackupList>; now(): Promise<BackupInfo>; saveAs(): Promise<string | null>; openFolder(): Promise<true> }
-  products: { list(): Promise<Product[]>; save(p: ProductInput): Promise<Product>; remove(id: number): Promise<true> }
+    products: {
+    list(): Promise<Product[]>
+    save(p: ProductInput): Promise<Product>
+    remove(id: number): Promise<true>
+    importPreview(): Promise<ImportPreview | null>
+    importApply(): Promise<{ created: number; updated: number }>
+  }
   invoices: {
     list(): Promise<InvoiceListRow[]>
     get(id: number): Promise<InvoiceRecord>
@@ -133,5 +156,7 @@ export interface Api {
     unlock(a: { id: number; version: number }): Promise<InvoiceRecord>
     remove(id: number): Promise<true>
     exportPdf(id: number): Promise<string | null> // saved path, or null if cancelled
+    exportExcel(id: number): Promise<string | null>
+    exportListExcel(ids: number[]): Promise<string | null>
   }
 }

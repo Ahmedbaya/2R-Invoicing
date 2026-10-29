@@ -2,12 +2,16 @@ import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { ZodError, type ZodType } from 'zod'
 import type { Result } from '../shared/types'
 import { deleteCategory, deleteClient, deleteProduct, listCategories, listClients, listProducts, saveCategory, saveClient, saveProduct } from './catalog'
-import { ping } from './db'
+import { ping, resetPool } from './db'
 import { deleteInvoice, duplicateInvoice, finalizeInvoice, getInvoice, lastNumber, listInvoices, saveDraft, unlockInvoice } from './invoices'
 import { exportInvoicePdf } from './pdf'
 import { categorySchema, clientSchema, draftSchema, duplicateSchema, finalizeSchema, idSchema, lastNumberSchema, productSchema } from './schemas'
 import { getDashboardStats } from './dashboard'
 import { createBackup, listBackups, openBackupFolder, saveBackupAs } from './backup'
+import { isConfigured, saveDatabaseUrl } from './config'
+import { z } from 'zod'
+import { applyProductImport, previewProductImport } from './importProducts'
+import { exportInvoiceExcel, exportInvoiceListExcel } from './excel'
 
 
 function message(err: unknown): string {
@@ -37,6 +41,8 @@ function handle<I, O>(channel: string, schema: ZodType<I, any, any> | null, fn: 
 }
 
 export function registerIpc() {
+  handle('config:status', null, async () => ({ configured: isConfigured() }))
+  handle('config:save', z.string().max(1000), async (url) => { await saveDatabaseUrl(url); resetPool(); return true as const })
   handle('db:ping', null, () => ping())
   handle('clients:list', null, () => listClients())
   handle('clients:save', clientSchema, (c) => saveClient(c))
@@ -52,6 +58,8 @@ export function registerIpc() {
   handle('dashboard:stats', null, () => getDashboardStats())
   handle('categories:delete', idSchema, (id) => deleteCategory(id))
   handle('products:delete', idSchema, (id) => deleteProduct(id))
+  handle('products:importPreview', null, (_i, e) => previewProductImport(BrowserWindow.fromWebContents(e.sender)))
+  handle('products:importApply', null, () => applyProductImport())
   handle('invoices:list', null, () => listInvoices())
   handle('invoices:get', idSchema, (id) => getInvoice(id))
   handle('invoices:saveDraft', draftSchema, (d) => saveDraft(d))
@@ -62,5 +70,11 @@ export function registerIpc() {
   handle('invoices:delete', idSchema, (id) => deleteInvoice(id))
   handle('invoices:exportPdf', idSchema, async (id, e) =>
     exportInvoicePdf(await getInvoice(id), BrowserWindow.fromWebContents(e.sender)),
+  )
+  handle('invoices:exportExcel', idSchema, async (id, e) =>
+    exportInvoiceExcel(await getInvoice(id), BrowserWindow.fromWebContents(e.sender)),
+  )
+  handle('invoices:exportListExcel', z.array(idSchema).min(1).max(5000), (ids, e) =>
+    exportInvoiceListExcel(ids, BrowserWindow.fromWebContents(e.sender)),
   )
 }

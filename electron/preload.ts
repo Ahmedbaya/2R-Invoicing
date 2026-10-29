@@ -9,6 +9,7 @@ const call = async <T>(channel: string, payload?: unknown): Promise<T> => {
 
 // Narrow, explicit surface: the renderer cannot invoke arbitrary channels.
 const api: Api = {
+  config: { status: () => call('config:status'), save: (url) => call('config:save', url) },
   db: { ping: () => call('db:ping') },
     clients: {
     list: () => call('clients:list'),
@@ -28,6 +29,8 @@ const api: Api = {
     remove: (id) => call('categories:delete', id),
   },
   products: {
+    importPreview: () => call('products:importPreview'),
+    importApply: () => call('products:importApply'),
     list: () => call('products:list'),
     save: (p) => call('products:save', p),
     remove: (id) => call('products:delete', id),
@@ -42,6 +45,8 @@ const api: Api = {
     unlock: (a) => call('invoices:unlock', a),
     remove: (id) => call('invoices:delete', id),
     exportPdf: (id) => call('invoices:exportPdf', id),
+    exportExcel: (id) => call('invoices:exportExcel', id),
+    exportListExcel: (ids) => call('invoices:exportListExcel', ids),
   },
 }
 

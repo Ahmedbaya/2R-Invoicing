@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
 import { Pool, types, type PoolClient } from 'pg'
+import { readStoredUrl } from './config'
 
 types.setTypeParser(1082, (v) => v) // keep DATE as 'yyyy-mm-dd' string (no timezone shifts)
 
@@ -9,14 +10,14 @@ let pool: Pool | null = null
 
 function databaseUrl(): string {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL
-  const file = path.join(app.getPath('userData'), 'config.json')
-  if (fs.existsSync(file)) {
-    const cfg = JSON.parse(fs.readFileSync(file, 'utf8'))
-    if (cfg.databaseUrl) return cfg.databaseUrl
-  }
-  throw new Error(`Database not configured. Create ${file} with {"databaseUrl": "postgres://user:pass@host:5432/invoicing"}`)
+  const stored = readStoredUrl()
+  if (stored) return stored
+  throw new Error('Database not configured. Open "Database settings" and paste your database link.')
 }
-
+export function resetPool() {
+  pool?.end().catch(() => {})
+  pool = null
+}
 export function getPool(): Pool {
   if (!pool) {
     pool = new Pool({

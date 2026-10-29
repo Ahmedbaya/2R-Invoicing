@@ -146,6 +146,11 @@ export default function InvoiceEditor() {
     const path = await window.api.invoices.exportPdf(saved?.id ?? meta.id!)
     return path ? t('ed.pdfSaved', { path }) : undefined
   })
+    const exportExcel = () => run(async () => {
+    const saved = readOnly ? null : await persist()
+    const path = await window.api.invoices.exportExcel(saved?.id ?? meta.id!)
+    return path ? t('ed.excelSaved', { path }) : undefined
+  })
 
   return (
     <>
@@ -160,6 +165,7 @@ export default function InvoiceEditor() {
           {readOnly && <button className="btn-quiet" disabled={busy} onClick={unlock}>{t('ed.edit')}</button>}
           {!readOnly && <button className="btn-quiet" disabled={busy} onClick={saveDraft}>{meta.number ? t('ed.saveChanges') : t('ed.saveDraft')}</button>}
           <button className="btn-quiet" disabled={busy || (!meta.id && rows.every((r) => !r.description))} onClick={exportPdf}>{t('ed.export')}</button>
+                    <button className="btn-quiet" disabled={busy || (!meta.id && rows.every((r) => !r.description))} onClick={exportExcel}>{t('ed.exportExcel')}</button>
           {!readOnly && <button className="btn-primary" disabled={busy} onClick={finalize}>{t('ed.finalize')}</button>}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { BackupIcon, CategoriesIcon, ClientsIcon, DashboardIcon, InvoiceIcon, ProductsIcon } from './components/icons'
 import BackupsPage from './pages/BackupsPage'
 import { LANGS, useI18n, type Lang } from './lib/i18n'
@@ -13,6 +13,7 @@ import InvoiceList from './pages/InvoiceList'
 import ProductsPage from './pages/ProductsPage'
 import type { Key } from './locales/en'
 import logo from './assets/logo.png'
+import SetupPage from './pages/SetupPage'
 
 const NAV: { to: string; label: Key; Icon: () => JSX.Element }[] = [
   { to: '/dashboard', label: 'nav.dashboard', Icon: DashboardIcon },
@@ -30,6 +31,12 @@ const link = ({ isActive }: { isActive: boolean }) =>
 
 export default function App() {
   const { t, lang, setLang } = useI18n()
+  const navigate = useNavigate()
+  const [configured, setConfigured] = useState<boolean | undefined>(undefined)
+  useEffect(() => {
+    window.api.config.status().then((s) => setConfigured(s.configured)).catch(() => setConfigured(true))
+  }, [])
+  
   // undefined = still checking, null = connected, string = error message
   const [dbError, setDbError] = useState<string | null | undefined>(undefined)
   const [name, setName] = useState(getUserName())
@@ -42,7 +49,14 @@ export default function App() {
     const timer = setInterval(check, 60000)
     return () => clearInterval(timer)
   }, [check])
-
+  if (configured === undefined) return null
+  if (!configured) {
+    return (
+      <ToastProvider>
+        <SetupPage firstRun onSaved={() => { setConfigured(true); check() }} />
+      </ToastProvider>
+    )
+  }
   return (
     <ToastProvider>
       <div className="flex h-screen">
@@ -61,6 +75,7 @@ export default function App() {
           </nav>
           <div className="space-y-3 p-4">
             <div role="status" className="flex items-center gap-2 text-xs text-white/70">
+              <NavLink to="/settings" className="block text-xs text-white/70 underline hover:text-white">{t('nav.settings')}</NavLink>
               <span className={`h-2 w-2 rounded-full ${dbError === undefined ? 'bg-amber-400' : dbError ? 'bg-red-500' : 'bg-emerald-400'}`} />
               {dbError === undefined ? t('db.connecting') : dbError ? t('db.offline') : t('db.connected')}
             </div>
@@ -96,6 +111,7 @@ export default function App() {
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/backups" element={<BackupsPage />} />
+              <Route path="/settings" element={<SetupPage firstRun={false} onSaved={() => { check(); navigate('/dashboard') }} />} />
             </Routes>
           </div>
         </main>

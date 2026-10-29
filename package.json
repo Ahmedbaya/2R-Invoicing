@@ -1,7 +1,8 @@
 {
   "name": "2r-invoicing",
   "productName": "2R Invoicing",
-  "version": "0.1.0",
+  "version": "1.1.0",
+  "author": "2R Confection",
   "private": true,
   "description": "2R Confection desktop invoicing (Phase 1)",
   "main": "dist-electron/main.js",
@@ -16,6 +17,7 @@
   "dependencies": {
     "decimal.js": "^10.4.3",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "pg": "^8.12.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

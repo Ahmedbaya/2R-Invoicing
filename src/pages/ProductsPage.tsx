@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Category, Product, ProductInput } from '../../shared/types'
 import { confirmAction } from '../lib/confirm'
 import { useI18n } from '../lib/i18n'
+import ProductImport from '../components/ProductImport'
 
 const blank: ProductInput = { code: '', name: '', description: '', category_id: 0, default_price: '' }
 
@@ -44,7 +45,10 @@ export default function ProductsPage() {
 
   return (
     <>
-      <h1 className="mb-4 text-2xl font-semibold">{t('pr.title')}</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{t('pr.title')}</h1>
+        <ProductImport onDone={load} />
+      </div>
       <section className="mb-6 grid grid-cols-4 gap-3 rounded border border-rule bg-white p-4">
         <div>
           <label className="label" htmlFor="code">{t('pr.code')}</label>
