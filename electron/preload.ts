@@ -11,19 +11,24 @@ const call = async <T>(channel: string, payload?: unknown): Promise<T> => {
 const api: Api = {
   config: { status: () => call('config:status'), save: (url) => call('config:save', url) },
   db: { ping: () => call('db:ping') },
-    clients: {
+  clients: {
     list: () => call('clients:list'),
     save: (c) => call('clients:save', c),
     remove: (id) => call('clients:delete', id),
   },
-    backup: {
+  oldImport: {
+    choose: (r) => call('oldImport:choose', r),
+    preview: (r) => call('oldImport:preview', r),
+    apply: (r) => call('oldImport:apply', r),
+  },
+  backup: {
     list: () => call('backup:list'),
     now: () => call('backup:now'),
     saveAs: () => call('backup:saveAs'),
     openFolder: () => call('backup:openFolder'),
   },
-    dashboard: { stats: () => call('dashboard:stats') },
-    categories: {
+  dashboard: { stats: () => call('dashboard:stats') },
+  categories: {
     list: () => call('categories:list'),
     save: (c) => call('categories:save', c),
     remove: (id) => call('categories:delete', id),

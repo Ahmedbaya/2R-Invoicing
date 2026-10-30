@@ -12,8 +12,21 @@ import { isConfigured, saveDatabaseUrl } from './config'
 import { z } from 'zod'
 import { applyProductImport, previewProductImport } from './importProducts'
 import { exportInvoiceExcel, exportInvoiceListExcel } from './excel'
+import { applyOldInvoices, chooseOldInvoices, previewOldInvoices } from './importOld'
 
-
+const rulesSchema = z.object({
+  manual: z
+    .array(
+      z.object({
+        text: z.string().max(300),
+        name: z.string().max(300),
+        code: z.string().max(50),
+        customs_code: z.string().max(20),
+        add: z.boolean(),
+      }),
+    )
+    .max(3000),
+})
 function message(err: unknown): string {
   if (err instanceof ZodError) {
     const i = err.issues[0]
@@ -77,4 +90,7 @@ export function registerIpc() {
   handle('invoices:exportListExcel', z.array(idSchema).min(1).max(5000), (ids, e) =>
     exportInvoiceListExcel(ids, BrowserWindow.fromWebContents(e.sender)),
   )
+  handle('oldImport:choose', rulesSchema, (rules, e) => chooseOldInvoices(BrowserWindow.fromWebContents(e.sender), rules))
+  handle('oldImport:preview', rulesSchema, (rules) => previewOldInvoices(rules))
+  handle('oldImport:apply', rulesSchema, (rules) => applyOldInvoices(rules))
 }

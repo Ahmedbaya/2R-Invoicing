@@ -1,7 +1,7 @@
 {
   "name": "2r-invoicing",
   "productName": "2R Invoicing",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "2R Confection",
   "private": true,
   "description": "2R Confection desktop invoicing (Phase 1)",

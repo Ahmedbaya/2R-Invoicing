@@ -8,6 +8,7 @@ import { localToday } from '../lib/date'
 import { useI18n } from '../lib/i18n'
 import { useToast } from '../lib/toast'
 import { getUserName } from '../lib/user'
+import OldInvoiceImport from '../components/OldInvoiceImport'
 
 type StatusFilter = 'all' | 'draft' | 'edited' | 'finalized'
 
@@ -101,9 +102,10 @@ export default function InvoiceList() {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('list.title')}</h1>
-        <Link to="/invoices/new" className="btn-primary">{t('list.new')}</Link>        <div className="flex gap-2">
+        <div className="flex gap-2">
+          <OldInvoiceImport onDone={load} />
           <button className="btn-quiet" disabled={filtered.length === 0} onClick={exportList}>{t('list.exportExcel')}</button>
           <Link to="/invoices/new" className="btn-primary">{t('list.new')}</Link>
         </div>

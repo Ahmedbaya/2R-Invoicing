@@ -49,6 +49,45 @@ export interface ImportPreview {
   updateCount: number
   errorCount: number
 }
+export interface OldManualEntry {
+  text: string // the line as it appears in the old invoice
+  name: string // the product name typed by the user (must be the end of the line)
+  code: string
+  customs_code: string
+  add: boolean // also save it in the Products list
+}
+export interface OldImportRules { manual: OldManualEntry[] }
+export interface OldImportFile {
+  file: string
+  number: number | null
+  year: number | null
+  date: string | null
+  client: string | null
+  client_state: 'existing' | 'new' | 'unknown'
+  lines: number
+  total: string
+  status: 'ok' | 'duplicate' | 'error'
+  problems: string[]
+  warnings: string[]
+  unmatched: number
+}
+export interface OldReviewLine { text: string; count: number; state: 'none' | 'manual' }
+export interface OldImportPreview {
+  files: OldImportFile[]
+  ok: number
+  duplicates: number
+  errors: number
+  new_clients: string[]
+  review: OldReviewLine[]
+  matched_total: number
+  manual_total: number
+  unmatched_total: number
+}
+export interface OldImportResult {
+  imported: number
+  skipped: number
+  failed: { file: string; message: string }[]
+}
 
 export interface ItemInput {
   product_id: number | null
@@ -158,5 +197,10 @@ export interface Api {
     exportPdf(id: number): Promise<string | null> // saved path, or null if cancelled
     exportExcel(id: number): Promise<string | null>
     exportListExcel(ids: number[]): Promise<string | null>
+  }
+    oldImport: {
+    choose(r: OldImportRules): Promise<OldImportPreview | null>
+    preview(r: OldImportRules): Promise<OldImportPreview>
+    apply(r: OldImportRules): Promise<OldImportResult>
   }
 }
