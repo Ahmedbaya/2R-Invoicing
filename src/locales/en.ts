@@ -230,10 +230,8 @@ export const en = {
   'pr.noCustomsCode': 'No customs code',
   'pr.count': '{n} products',
   'pr.noMatch': 'No product with this customs code.',
-    'oi.intro': 'Products already in your list are detected automatically: the product name goes in ARTICOLO and the rest of the line in COMMANDE. For the others, enter the product below.',
   'oi.matchSummary': '{m} lines matched your products, {x} entered manually, {u} still to complete',
   'oi.reviewTitle': 'Lines to complete ({n})',
-  'oi.reviewHelp': 'Keep only the product name in the field (delete the order name at the start of the line). Add a code and a customs code, and tick “Add to products” to save it in your list. Then click “Update preview”.',
   'oi.allMatched': 'All lines are matched.',
   'oi.colLine': 'Line in the old invoice',
   'oi.colProduct': 'Product name',
@@ -243,6 +241,17 @@ export const en = {
   'oi.orderIs': 'Order: {order}',
   'oi.orderNone': 'Order: none',
   'oi.mustEnd': 'The product name must be the end of the line.',
+    'oi.intro': 'The end of each old line is compared with your Products list. If it is part of a product name, the line takes the full product name (with its code and customs code) and the rest of the line becomes the order name.',
+  'oi.reviewHelp': 'Check the detected products. For other lines, choose a product from your list in the field, or type a new product name (it must be the end of the line, so remove the order name at the start). Then click “Update preview”.',
+  'oi.matchSummary2': '{m} lines matched exactly, {p} by part of the name, {x} chosen by you, {u} still to complete',
+  'oi.minWords': 'Minimum words that must match',
+  'oi.productPlaceholder': 'Choose or type a product',
+  'oi.candidates': 'Several products match: {names}. Choose one.',
+  'oi.noCommon': 'No common word with this product: the whole line goes in the order.',
+  'oi.stateNone': 'Not found in your products',
+  'oi.stateAmbiguous': 'Several products match',
+  'oi.statePartial': 'Detected from part of the name: please check',
+  'oi.stateManual': 'Your choice',
 }
 
 export type Key = keyof typeof en

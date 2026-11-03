@@ -5,8 +5,8 @@ import ExcelJS from 'exceljs'
 import { computeTotals, dec } from '../shared/calc'
 import { decodeText, parseCsv } from '../shared/csv'
 import {
-  clean, emptyParsed, isProductSuffix, makeCtx, norm, parseOldInvoice, resolveLine,
-  type ParsedOld, type ProductRef,
+  clean, emptyParsed, isProductSuffix, makeCtx, norm, parseOldInvoice, resolveLine, splitByFragment,
+  type ParsedOld, type ProductRef, type Resolved,
 } from '../shared/oldInvoice'
 import type { Client, OldImportFile, OldImportPreview, OldImportResult, OldImportRules, OldReviewLine } from '../shared/types'
 import { getPool, withTx } from './db'
@@ -69,21 +69,47 @@ async function buildPlan(rules: OldImportRules): Promise<{ plans: Plan[]; virtua
   for (const c of cl.rows as Client[]) clientByKey.set(clientKey(c.company_name), c)
   const existing = new Set<string>((iv.rows as { client_id: number | null; year: number; number: number }[]).map((r) => `${r.client_id}|${r.year}|${r.number}`))
 
-  // Products from your list, plus the ones typed manually in the preview.
   const catalog = pr.rows as ProductRef[]
-  const catalogNames = new Set(catalog.map((c) => norm(c.name)))
+  const catalogByName = new Map(catalog.map((c) => [norm(c.name), c]))
+  const catalogById = new Map(catalog.map((c) => [c.id as number, c]))
+  const entries = new Map(rules.manual.map((e) => [norm(e.text), e]))
+
+  // Products typed by the user that are not in the list yet.
   const virtuals = new Map<string, ProductRef>()
   for (const e of rules.manual) {
+    if (e.pick) continue
     const name = clean(e.name)
     const k = norm(name)
-    if (!k || !isProductSuffix(e.text, name) || catalogNames.has(k) || virtuals.has(k)) continue
+    if (!k || !isProductSuffix(e.text, name) || catalogByName.has(k) || virtuals.has(k)) continue
     virtuals.set(k, { id: null, code: clean(e.code) || null, name, customs_code: clean(e.customs_code) || null, manual: true, add: e.add })
   }
-  const ctx = makeCtx([...catalog, ...virtuals.values()])
+  const ctx = makeCtx([...catalog, ...virtuals.values()], rules.minWords)
+
+  // The user's own choice for a line always wins over the automatic detection.
+  const resolve = (text: string): Resolved => {
+    const e = entries.get(norm(text))
+    if (e) {
+      const full = clean(text)
+      if (e.pick) {
+        const p = catalogById.get(e.pick)
+        if (p) {
+          return { order_name: splitByFragment(full, p.name).order, description: clean(p.name), product: p, customs_code: p.customs_code ?? '', kind: 'manual', candidates: [] }
+        }
+      } else if (isProductSuffix(full, e.name)) {
+        const k = norm(e.name)
+        const p = virtuals.get(k) ?? catalogByName.get(k)
+        if (p) {
+          return { order_name: full.slice(0, full.length - k.length).trim(), description: clean(p.name), product: p, customs_code: p.customs_code ?? '', kind: 'manual', candidates: [] }
+        }
+      }
+    }
+    return resolveLine(text, ctx)
+  }
 
   const batchKeys = new Set<string>()
   const review = new Map<string, OldReviewLine>()
-  let matchedTotal = 0
+  let exactTotal = 0
+  let partialTotal = 0
   let manualTotal = 0
   let unmatchedTotal = 0
   const plans: Plan[] = []
@@ -101,7 +127,7 @@ async function buildPlan(rules: OldImportRules): Promise<{ plans: Plan[]; virtua
       warnings.push(`The date is in ${p.date.slice(0, 4)} but the number says ${p.year}`)
     }
 
-    const resolved = p.items.map((it) => ({ it, r: resolveLine(it.text, ctx) }))
+    const resolved = p.items.map((it) => ({ it, r: resolve(it.text) }))
     const items: PlanItem[] = resolved.map(({ it, r }) => ({
       product_id: r.product?.id ?? null,
       item_code: r.product?.code ?? '',
@@ -133,15 +159,25 @@ async function buildPlan(rules: OldImportRules): Promise<{ plans: Plan[]; virtua
 
     if (status === 'ok') {
       for (const { it, r } of resolved) {
-        const state: 'none' | 'manual' | 'catalog' = !r.product ? 'none' : r.product.manual ? 'manual' : 'catalog'
-        if (state === 'catalog') matchedTotal++
+        if (r.kind === 'exact') exactTotal++
         else {
-          if (state === 'manual') manualTotal++
+          if (r.kind === 'partial') partialTotal++
+          else if (r.kind === 'manual') manualTotal++
           else unmatchedTotal++
           const k = norm(it.text)
           const cur = review.get(k)
           if (cur) cur.count++
-          else review.set(k, { text: clean(it.text), count: 1, state })
+          else {
+            review.set(k, {
+              text: clean(it.text),
+              count: 1,
+              state: r.kind,
+              product: r.product ? clean(r.product.name) : null,
+              code: r.product?.code ?? null,
+              order: r.order_name,
+              candidates: r.candidates.map((c) => clean(c.name)),
+            })
+          }
         }
       }
     }
@@ -159,7 +195,7 @@ async function buildPlan(rules: OldImportRules): Promise<{ plans: Plan[]; virtua
 
   const newClients = new Map<string, string>()
   for (const p of plans) if (p.status === 'ok' && !p.client && p.parsed.client_name) newClients.set(p.clientKey, p.parsed.client_name)
-  const rank = (s: OldReviewLine['state']) => (s === 'none' ? 0 : 1)
+  const rank = (s: OldReviewLine['state']) => (s === 'none' || s === 'ambiguous' ? 0 : s === 'partial' ? 1 : 2)
 
   return {
     plans,
@@ -171,7 +207,8 @@ async function buildPlan(rules: OldImportRules): Promise<{ plans: Plan[]; virtua
       errors: plans.filter((p) => p.status === 'error').length,
       new_clients: [...newClients.values()],
       review: [...review.values()].sort((a, b) => rank(a.state) - rank(b.state) || b.count - a.count).slice(0, 300),
-      matched_total: matchedTotal,
+      matched_total: exactTotal,
+      partial_total: partialTotal,
       manual_total: manualTotal,
       unmatched_total: unmatchedTotal,
     },

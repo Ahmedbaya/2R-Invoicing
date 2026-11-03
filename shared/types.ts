@@ -49,14 +49,6 @@ export interface ImportPreview {
   updateCount: number
   errorCount: number
 }
-export interface OldManualEntry {
-  text: string // the line as it appears in the old invoice
-  name: string // the product name typed by the user (must be the end of the line)
-  code: string
-  customs_code: string
-  add: boolean // also save it in the Products list
-}
-export interface OldImportRules { manual: OldManualEntry[] }
 export interface OldImportFile {
   file: string
   number: number | null
@@ -71,7 +63,24 @@ export interface OldImportFile {
   warnings: string[]
   unmatched: number
 }
-export interface OldReviewLine { text: string; count: number; state: 'none' | 'manual' }
+export interface OldManualEntry {
+  text: string // the line as it appears in the old invoice
+  name: string // product name typed or chosen by the user
+  code: string
+  customs_code: string
+  add: boolean // also save it in the Products list
+  pick?: number | null // id of a product from your list chosen by the user
+}
+export interface OldImportRules { manual: OldManualEntry[]; minWords: number }
+export interface OldReviewLine {
+  text: string
+  count: number
+  state: 'none' | 'ambiguous' | 'partial' | 'manual'
+  product: string | null // product name from your list (when detected or chosen)
+  code: string | null
+  order: string
+  candidates: string[] // several products match: their names
+}
 export interface OldImportPreview {
   files: OldImportFile[]
   ok: number
@@ -80,6 +89,7 @@ export interface OldImportPreview {
   new_clients: string[]
   review: OldReviewLine[]
   matched_total: number
+  partial_total: number
   manual_total: number
   unmatched_total: number
 }

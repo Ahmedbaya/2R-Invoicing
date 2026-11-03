@@ -15,6 +15,7 @@ import { exportInvoiceExcel, exportInvoiceListExcel } from './excel'
 import { applyOldInvoices, chooseOldInvoices, previewOldInvoices } from './importOld'
 
 const rulesSchema = z.object({
+  minWords: z.number().int().min(1).max(5),
   manual: z
     .array(
       z.object({
@@ -23,6 +24,7 @@ const rulesSchema = z.object({
         code: z.string().max(50),
         customs_code: z.string().max(20),
         add: z.boolean(),
+        pick: z.number().int().positive().nullable().optional(),
       }),
     )
     .max(3000),

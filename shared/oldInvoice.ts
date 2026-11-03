@@ -135,6 +135,10 @@ export function parseOldInvoice(rows: string[][]): ParsedOld {
 
 // ---- Product detection: the product name goes in ARTICOLO, the rest of the line in COMMANDE ----
 
+// ---- Product detection ----
+// The end of an old line may be only a PART of a product name (start, middle or end of it).
+// The line then takes the full name from the Products list, and the rest of the line becomes the order name.
+
 export interface ProductRef {
   id: number | null // null for products typed manually during the import
   code: string | null
@@ -143,37 +147,77 @@ export interface ProductRef {
   manual?: boolean
   add?: boolean
 }
-export interface ResolveCtx { products: (ProductRef & { n: string })[] }
+export type MatchKind = 'exact' | 'partial' | 'ambiguous' | 'none' | 'manual'
 export interface Resolved {
   order_name: string
   description: string
   product: ProductRef | null
   customs_code: string
+  kind: MatchKind
+  candidates: ProductRef[] // when several products contain the end of the line
 }
+export interface ResolveCtx { products: (ProductRef & { words: string[] })[]; minWords: number }
 
-/** Longest names first, so "RACING ZAINO CLUB" wins over "ZAINO CLUB". */
-export function makeCtx(products: ProductRef[]): ResolveCtx {
-  return {
-    products: products
-      .map((p) => ({ ...p, n: norm(p.name) }))
-      .filter((p) => p.n)
-      .sort((a, b) => b.n.length - a.n.length),
+const words = (s: string) => norm(s).split(' ').filter(Boolean)
+
+function containsSeq(hay: string[], needle: string[]): boolean {
+  outer: for (let s = 0; s + needle.length <= hay.length; s++) {
+    for (let k = 0; k < needle.length; k++) if (hay[s + k] !== needle[k]) continue outer
+    return true
   }
+  return false
 }
 
-/** True when `name` is the end of `line` (a whole word or words), ignoring case and accents. */
+export function makeCtx(products: ProductRef[], minWords = 1): ResolveCtx {
+  const seen = new Set<string>()
+  const list: (ProductRef & { words: string[] })[] = []
+  for (const p of products) {
+    const w = words(p.name)
+    const k = w.join(' ')
+    if (!k || seen.has(k)) continue // two products with the same name count once (the first wins)
+    seen.add(k)
+    list.push({ ...p, words: w })
+  }
+  return { products: list, minWords }
+}
+
+/** True when `name` is the end of `line` (whole words), ignoring case and accents. */
 export function isProductSuffix(line: string, name: string): boolean {
   const l = norm(line)
   const n = norm(name)
   return !!n && (l === n || l.endsWith(' ' + n))
 }
 
+/** For a product chosen by the user: the longest end of the line found inside its name is the article, the rest is the order. */
+export function splitByFragment(text: string, name: string): { order: string; found: boolean } {
+  const lw = clean(text).split(' ')
+  const nw = lw.map(norm)
+  const pw = words(name)
+  for (let i = 0; i < lw.length; i++) {
+    if (containsSeq(pw, nw.slice(i))) return { order: lw.slice(0, i).join(' '), found: true }
+  }
+  return { order: clean(text), found: false }
+}
+
+const done = (order: string, p: ProductRef, kind: MatchKind): Resolved => ({
+  order_name: order, description: clean(p.name), product: p, customs_code: p.customs_code ?? '', kind, candidates: [],
+})
+
 export function resolveLine(text: string, ctx: ResolveCtx): Resolved {
   const full = clean(text)
-  for (const p of ctx.products) {
-    if (!isProductSuffix(full, p.name)) continue
-    const order = full.slice(0, full.length - p.n.length).trim()
-    return { order_name: order, description: clean(p.name), product: p, customs_code: p.customs_code ?? '' }
+  const lw = full.split(' ')
+  const nw = lw.map(norm)
+  // Try the longest end of the line first, then shorter ones.
+  for (let i = 0; i < lw.length; i++) {
+    const frag = nw.slice(i)
+    const hits = ctx.products.filter((p) => (frag.length >= ctx.minWords || frag.length === p.words.length) && containsSeq(p.words, frag))
+    if (hits.length === 0) continue
+    const order = lw.slice(0, i).join(' ')
+    const exact = hits.find((p) => p.words.length === frag.length)
+    if (exact) return done(order, exact, 'exact')
+    if (hits.length === 1) return done(order, hits[0], 'partial')
+    const candidates = [...hits].sort((a, b) => frag.length / b.words.length - frag.length / a.words.length).slice(0, 8)
+    return { order_name: '', description: full, product: null, customs_code: '', kind: 'ambiguous', candidates }
   }
-  return { order_name: '', description: full, product: null, customs_code: '' }
+  return { order_name: '', description: full, product: null, customs_code: '', kind: 'none', candidates: [] }
 }
